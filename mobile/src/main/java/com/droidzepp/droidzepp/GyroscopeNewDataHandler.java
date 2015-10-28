@@ -2,8 +2,12 @@ package com.droidzepp.droidzepp;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
 
@@ -45,6 +49,27 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
         // Inserting Row
         db.insert(TABLE_GYROSCOPE, null, values);
         db.close(); // Closing database connection
+    }
+
+    public List<XYZ> getAllData() {
+        List<XYZ> dataList = new ArrayList<XYZ>();
+        String selectQuery = "SELECT  * FROM " + TABLE_GYROSCOPE;
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                XYZ entry = new XYZ();
+                entry.setX(cursor.getFloat(1));
+                entry.setY(cursor.getFloat(2));
+                entry.setZ(cursor.getFloat(3));
+                dataList.add(entry);
+            } while (cursor.moveToNext());
+        }
+
+        db.close();
+        return dataList;
     }
 
     void clearTable(){

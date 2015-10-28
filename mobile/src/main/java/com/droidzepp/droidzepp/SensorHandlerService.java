@@ -23,11 +23,12 @@ public class SensorHandlerService extends Service {
     private Handler hndlEndRecording;
     private AccelerometerNewDataHandler dbNewAccData;
     private GyroscopeNewDataHandler dbNewGyroData;
-    int recordingInterval = 30000;  // 1200000 = 20 minutes
-    int recordingLength = 10000;  //60000 = 1 minute
+    int recordingInterval = 120000;  // 1200000 = 20 minutes
+    int recordingLength = 60000;  //60000 = 1 minute
     int sensorDelay = 1000;
     public static boolean flagForAcc = false;
     public static boolean flagForGyro = false;
+    public static boolean newDataRecorded = false;
 
     private final Runnable prcsStartRecording = new Runnable() {
         @Override
@@ -60,6 +61,7 @@ public class SensorHandlerService extends Service {
             mSensorManager.unregisterListener(mAccEventListener, mAccelerometer);
             mSensorManager.unregisterListener(mGyroEventListener, mGyroscope);
             hndlEndRecording.removeCallbacks(prcsEndRecording);
+            newDataRecorded = true;
         }
     };
 

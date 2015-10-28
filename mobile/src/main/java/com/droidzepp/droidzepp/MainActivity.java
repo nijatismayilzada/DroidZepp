@@ -28,8 +28,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Intent i = new Intent(MainActivity.this, SensorHandlerService.class);
-        startService(i);
+        Intent sensorCollectionService = new Intent(MainActivity.this, SensorHandlerService.class);
+        startService(sensorCollectionService);
+        Intent classifierService = new Intent(MainActivity.this, ClassifyService.class);
+        startService(classifierService);
     }
 
     @Override

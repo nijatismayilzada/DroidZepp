@@ -19,6 +19,7 @@
             </intent-filter>
         </activity>
         <service android:name=".SensorHandlerService" ></service>
+        <service android:name=".ClassifyService" ></service>
     </application>
 
 </manifest>
