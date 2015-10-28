@@ -23,7 +23,7 @@ public class SensorHandlerService extends Service {
     private Handler hndlEndRecording;
     private AccelerometerNewDataHandler dbNewAccData;
     private GyroscopeNewDataHandler dbNewGyroData;
-    int recordingInterval = 120000;  // 1200000 = 20 minutes
+    int recordingInterval = 1200000;  // 1200000 = 20 minutes
     int recordingLength = 60000;  //60000 = 1 minute
     int sensorDelay = 1000;
     public static boolean flagForAcc = false;
