@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Intent i = new Intent(MainActivity.this, AccelerometerCollector.class);
+        Intent i = new Intent(MainActivity.this, SensorHandlerService.class);
         startService(i);
     }
 

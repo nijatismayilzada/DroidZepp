@@ -1,31 +1,27 @@
 package com.droidzepp.droidzepp;
 
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-/**
- * Created by nijat on 08/10/15.
- */
-public class AccelerometerDatabaseHandler extends SQLiteOpenHelper{
+public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
 
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "accelerometerNewRecord.db";
-    private static final String TABLE_ACCELEROMETER = "xyzRecords";
+    private static final String DATABASE_NAME = "gyroscopeNewRecord.db";
+    private static final String TABLE_GYROSCOPE = "xyzRecords";
     private static final String KEY_ID = "id";
     private static final String KEY_X = "x";
     private static final String KEY_Y = "y";
     private static final String KEY_Z = "z";
 
-    public AccelerometerDatabaseHandler(Context context) {
+    public GyroscopeNewDataHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String CREATE_TABLE = "CREATE TABLE " + TABLE_ACCELEROMETER + "("
+        String CREATE_TABLE = "CREATE TABLE " + TABLE_GYROSCOPE + "("
                 + KEY_ID + " INTEGER PRIMARY KEY," + KEY_X + " REAL,"
                 + KEY_Y + " REAL," + KEY_Z + " REAL" + ")";
         db.execSQL(CREATE_TABLE);
@@ -33,7 +29,7 @@ public class AccelerometerDatabaseHandler extends SQLiteOpenHelper{
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_ACCELEROMETER);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_GYROSCOPE);
 
         onCreate(db);
     }
@@ -47,12 +43,13 @@ public class AccelerometerDatabaseHandler extends SQLiteOpenHelper{
         values.put(KEY_Z, data.getZ());
 
         // Inserting Row
-        db.insert(TABLE_ACCELEROMETER, null, values);
+        db.insert(TABLE_GYROSCOPE, null, values);
         db.close(); // Closing database connection
     }
 
     void clearTable(){
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM xyzRecords;");
+        db.close();
     }
 }

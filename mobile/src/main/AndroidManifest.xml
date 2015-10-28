@@ -18,7 +18,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".AccelerometerCollector" ></service>
+        <service android:name=".SensorHandlerService" ></service>
     </application>
 
 </manifest>
