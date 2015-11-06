@@ -24,7 +24,7 @@ public class ClassifyService extends Service {
     private Handler hndlCheckForStart;
     private Handler hndlClassify;
 
-    int recheckingInterval = 2000;
+    int recheckingInterval = 120000;
 
     private final Runnable prcsCheckForStart = new Runnable() {
         @Override

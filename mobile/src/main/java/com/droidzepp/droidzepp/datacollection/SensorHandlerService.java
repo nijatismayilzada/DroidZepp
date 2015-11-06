@@ -11,11 +11,6 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.droidzepp.droidzepp.datacollection.AccelerometerListener;
-import com.droidzepp.droidzepp.datacollection.AccelerometerNewDataHandler;
-import com.droidzepp.droidzepp.datacollection.GyroscopeListener;
-import com.droidzepp.droidzepp.datacollection.GyroscopeNewDataHandler;
-
 public class SensorHandlerService extends Service {
 
     private Sensor mAccelerometer;
@@ -28,8 +23,8 @@ public class SensorHandlerService extends Service {
     private Handler hndlEndRecording;
     private AccelerometerNewDataHandler dbNewAccData;
     private GyroscopeNewDataHandler dbNewGyroData;
-    int recordingInterval = 20000;  // 1200000 = 20 minutes
-    int recordingLength = 5000;  //60000 = 1 minute
+    int recordingInterval = 1200000;  // 1200000 = 20 minutes
+    int recordingLength = 60000;  //60000 = 1 minute
     int sensorDelay = 1000;
     public static boolean flagForAcc = false;
     public static boolean flagForGyro = false;
