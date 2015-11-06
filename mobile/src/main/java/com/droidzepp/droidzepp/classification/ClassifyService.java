@@ -1,4 +1,4 @@
-package com.droidzepp.droidzepp;
+package com.droidzepp.droidzepp.classification;
 
 import android.app.Service;
 import android.content.Intent;
@@ -6,6 +6,12 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
+
+import com.droidzepp.droidzepp.datacollection.AccelerometerNewDataHandler;
+import com.droidzepp.droidzepp.datacollection.GyroscopeNewDataHandler;
+import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
+import com.droidzepp.droidzepp.datacollection.XYZ;
+import com.droidzepp.droidzepp.datacollection.XYZwithTime;
 
 import java.util.List;
 
@@ -18,7 +24,7 @@ public class ClassifyService extends Service {
     private Handler hndlCheckForStart;
     private Handler hndlClassify;
 
-    int recheckingInterval = 12000;
+    int recheckingInterval = 2000;
 
     private final Runnable prcsCheckForStart = new Runnable() {
         @Override
@@ -72,25 +78,23 @@ public class ClassifyService extends Service {
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
         ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
 
-        List<XYZ> accDataList = dbAccNewData.getAllData();
+        List<XYZwithTime> accDataList = dbAccNewData.getAllData();
         List<XYZ> gyroDataList = dbGyroNewData.getAllData();
         FeatureContainer newFeatures = new FeatureContainer();
 
+        long actionLabelID = actionsDB.addNewLabel("unknown action");
+
         for (int i = 0; i < Math.min(accDataList.size(), gyroDataList.size()); i++){
+            newFeatures.setTime(accDataList.get(i).getTime());
             newFeatures.setA(accDataList.get(i).getX());
             newFeatures.setB(accDataList.get(i).getY());
             newFeatures.setC(accDataList.get(i).getZ());
             newFeatures.setD(gyroDataList.get(i).getX());
             newFeatures.setE(gyroDataList.get(i).getY());
             newFeatures.setF(gyroDataList.get(i).getZ());
+            newFeatures.setLid(actionLabelID);
             actionsDB.addFeatures(newFeatures);
         }
-        newFeatures.setA(0);
-        newFeatures.setB(0);
-        newFeatures.setC(0);
-        newFeatures.setD(0);
-        newFeatures.setE(0);
-        newFeatures.setF(0);
         actionsDB.addFeatures(newFeatures);
 
     }

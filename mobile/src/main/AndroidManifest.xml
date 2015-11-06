@@ -18,8 +18,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".SensorHandlerService" ></service>
-        <service android:name=".ClassifyService" ></service>
+        <service android:name=".datacollection.SensorHandlerService" ></service>
+        <service android:name=".classification.ClassifyService" ></service>
     </application>
 
 </manifest>

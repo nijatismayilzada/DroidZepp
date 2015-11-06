@@ -1,16 +1,21 @@
-package com.droidzepp.droidzepp;
+package com.droidzepp.droidzepp.datacollection;
 
-public class XYZ {
+/**
+ * Created by nijat on 05/11/15.
+ */
+public class XYZwithTime {
     int id;
+    String time;
     float x;
     float y;
     float z;
 
-    public XYZ(){
+    public XYZwithTime(){
 
     }
-    public XYZ(int id, float x, float y, float z){
+    public XYZwithTime(int id, String time, float x, float y, float z){
         this.id = id;
+        this.time = time;
         this.x = x;
         this.y = y;
         this.z = z;
@@ -22,6 +27,14 @@ public class XYZ {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
     }
 
     public float getX() {

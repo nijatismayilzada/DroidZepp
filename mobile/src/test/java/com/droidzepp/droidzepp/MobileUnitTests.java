@@ -1,5 +1,7 @@
 package com.droidzepp.droidzepp;
 
+import com.droidzepp.droidzepp.datacollection.XYZ;
+
 import org.junit.Test;
 
 import static org.junit.Assert.*;

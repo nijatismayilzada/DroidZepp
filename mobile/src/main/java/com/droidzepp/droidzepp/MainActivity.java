@@ -10,6 +10,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.droidzepp.droidzepp.classification.ClassifyService;
+import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
+
 public class MainActivity extends AppCompatActivity {
 
     @Override

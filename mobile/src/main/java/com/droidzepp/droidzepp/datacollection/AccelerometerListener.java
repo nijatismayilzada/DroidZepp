@@ -1,4 +1,4 @@
-package com.droidzepp.droidzepp;
+package com.droidzepp.droidzepp.datacollection;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -6,10 +6,12 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
 
-public class GyroscopeListener implements SensorEventListener {
+import com.droidzepp.droidzepp.HelperFunctions;
+
+public class AccelerometerListener implements SensorEventListener {
     private Context mContext;
 
-    public GyroscopeListener(Context context){
+    public AccelerometerListener(Context context){
         mContext = context;
     }
 
@@ -20,18 +22,19 @@ public class GyroscopeListener implements SensorEventListener {
 
     @Override
     public final void onSensorChanged(SensorEvent event) {
-        if (SensorHandlerService.flagForGyro) {
+        if (SensorHandlerService.flagForAcc) {
 
-            XYZ data = new XYZ();
-            GyroscopeNewDataHandler dbNewData = new GyroscopeNewDataHandler(mContext);
+            XYZwithTime data = new XYZwithTime();
+            AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
             // Many sensors return 3 values, one for each axis.
+            data.setTime(HelperFunctions.getDateTime());
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
-            Log.d("gyr", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
+            Log.d("acc", String.valueOf(data.getTime()) + " " + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
             dbNewData.addXYZ(data);
             // Do something with this sensor value.
-            SensorHandlerService.flagForGyro = false;
+            SensorHandlerService.flagForAcc = false;
         }
     }
 }

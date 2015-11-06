@@ -1,4 +1,4 @@
-package com.droidzepp.droidzepp;
+package com.droidzepp.droidzepp.datacollection;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -9,61 +9,64 @@ import android.database.sqlite.SQLiteOpenHelper;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
+public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
 
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "gyroscopeNewRecord.db";
-    private static final String TABLE_GYROSCOPE = "xyzRecords";
+    private static final String DATABASE_NAME = "accelerometerNewRecord.db";
+    private static final String TABLE_ACCELEROMETER = "xyzRecords";
     private static final String KEY_ID = "id";
+    private static final String KEY_TIME = "time";
     private static final String KEY_X = "x";
     private static final String KEY_Y = "y";
     private static final String KEY_Z = "z";
 
-    public GyroscopeNewDataHandler(Context context) {
+    public AccelerometerNewDataHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String CREATE_TABLE = "CREATE TABLE " + TABLE_GYROSCOPE + "("
-                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_X + " REAL,"
-                + KEY_Y + " REAL," + KEY_Z + " REAL" + ")";
+        String CREATE_TABLE = "CREATE TABLE " + TABLE_ACCELEROMETER + "("
+                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_TIME + " TEXT,"
+                + KEY_X + " REAL," + KEY_Y + " REAL," + KEY_Z + " REAL" + ")";
         db.execSQL(CREATE_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_GYROSCOPE);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_ACCELEROMETER);
 
         onCreate(db);
     }
 
-    void addXYZ(XYZ data) {
+    void addXYZ(XYZwithTime data) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
+        values.put(KEY_TIME, data.getTime());
         values.put(KEY_X, data.getX());
         values.put(KEY_Y, data.getY());
         values.put(KEY_Z, data.getZ());
 
         // Inserting Row
-        db.insert(TABLE_GYROSCOPE, null, values);
+        db.insert(TABLE_ACCELEROMETER, null, values);
         db.close(); // Closing database connection
     }
 
-    public List<XYZ> getAllData() {
-        List<XYZ> dataList = new ArrayList<XYZ>();
-        String selectQuery = "SELECT  * FROM " + TABLE_GYROSCOPE;
+    public List<XYZwithTime> getAllData() {
+        List<XYZwithTime> dataList = new ArrayList<>();
+        String selectQuery = "SELECT  * FROM " + TABLE_ACCELEROMETER;
 
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery(selectQuery, null);
 
         if (cursor.moveToFirst()) {
             do {
-                XYZ entry = new XYZ();
-                entry.setX(cursor.getFloat(1));
-                entry.setY(cursor.getFloat(2));
-                entry.setZ(cursor.getFloat(3));
+                XYZwithTime entry = new XYZwithTime();
+                entry.setTime(cursor.getString(1));
+                entry.setX(cursor.getFloat(2));
+                entry.setY(cursor.getFloat(3));
+                entry.setZ(cursor.getFloat(4));
                 dataList.add(entry);
             } while (cursor.moveToNext());
         }
