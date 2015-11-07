@@ -1,9 +1,12 @@
 package com.droidzepp.droidzepp;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
 import android.widget.TextView;
+
+import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
 
 public class MainActivity extends Activity {
 
@@ -20,5 +23,8 @@ public class MainActivity extends Activity {
                 mTextView = (TextView) stub.findViewById(R.id.text);
             }
         });
+
+        Intent sensorCollectionService = new Intent(MainActivity.this, SensorHandlerService.class);
+        startService(sensorCollectionService);
     }
 }

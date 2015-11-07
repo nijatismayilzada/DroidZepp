@@ -7,8 +7,6 @@ import android.hardware.SensorEventListener;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.droidzepp.droidzepp.HelperFunctions;
-
 public class AccelerometerListener implements SensorEventListener {
     private Context mContext;
 
@@ -25,17 +23,16 @@ public class AccelerometerListener implements SensorEventListener {
     public final void onSensorChanged(SensorEvent event) {
         if (SensorHandlerService.flagForAcc) {
 
-            XYZwithTime data = new XYZwithTime();
-            AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
+            XYZ data = new XYZ();
+            //AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
             // Many sensors return 3 values, one for each axis.
-            data.setTime(HelperFunctions.getDateTime());
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
-            Log.d("acc", String.valueOf(data.getTime()) + " " + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
-            Toast.makeText(mContext, "acc  ---"+ String.valueOf(data.getTime()) + " " + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()),
+            Log.d("accWearable", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
+            Toast.makeText(mContext, "accWear  ---" + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()),
                     Toast.LENGTH_LONG).show();
-            dbNewData.addXYZ(data);
+            //dbNewData.addXYZ(data);
             // Do something with this sensor value.
             SensorHandlerService.flagForAcc = false;
         }
