@@ -13,7 +13,11 @@ import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
 import com.droidzepp.droidzepp.datacollection.XYZ;
 import com.droidzepp.droidzepp.datacollection.XYZwithTime;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import Catalano.MachineLearning.Classification.MulticlassSupportVectorMachine;
+import Catalano.Statistics.Kernels.Gaussian;
 
 /**
  * Created by nijat on 28/10/15.
@@ -23,8 +27,9 @@ public class ClassifyService extends Service {
 
     private Handler hndlCheckForStart;
     private Handler hndlClassify;
+    MulticlassSupportVectorMachine svm = new MulticlassSupportVectorMachine(new Gaussian(100), 1, 3);
 
-    int recheckingInterval = 120000;
+    int recheckingInterval = 10000;
 
     private final Runnable prcsCheckForStart = new Runnable() {
         @Override
@@ -43,7 +48,8 @@ public class ClassifyService extends Service {
     private final Runnable prcsClassify = new Runnable() {
         @Override
         public void run() {
-            extractfeatures();
+            //extractfeatures();
+            classify();
         }
     };
     @Nullable
@@ -54,6 +60,11 @@ public class ClassifyService extends Service {
 
     @Override
     public void onCreate() {
+
+        ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
+        double[][] input = actionsDB.getDataSet();
+        int[] output = actionsDB.getLabels();
+        svm.Learn(input, output);
 
         hndlCheckForStart = new Handler();
         hndlClassify = new Handler();
@@ -96,6 +107,34 @@ public class ClassifyService extends Service {
             actionsDB.addFeatures(newFeatures);
         }
         actionsDB.addFeatures(newFeatures);
+
+    }
+    void classify(){
+        AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
+        GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
+
+
+        List<XYZwithTime> accDataList = dbAccNewData.getAllData();
+        List<XYZ> gyroDataList = dbGyroNewData.getAllData();
+        ArrayList data = new ArrayList();
+        double[] testData = new double[870];
+
+
+        for (int i = 0; i < Math.min(accDataList.size(), gyroDataList.size()); i++){
+            data.add((double)accDataList.get(i).getX());
+            data.add((double)accDataList.get(i).getY());
+            data.add((double)accDataList.get(i).getZ());
+            data.add((double)gyroDataList.get(i).getX());
+            data.add((double)gyroDataList.get(i).getY());
+            data.add((double)gyroDataList.get(i).getZ());
+        }
+        for (int i=0;i<870;i++)
+        {
+            testData[i] = (double) data.get(i);
+        }
+
+        int p = svm.Predict(testData);
+        Log.d("Predicted: ", String.valueOf(p));
 
     }
 }

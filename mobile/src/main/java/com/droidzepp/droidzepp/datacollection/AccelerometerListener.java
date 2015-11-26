@@ -5,7 +5,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.droidzepp.droidzepp.HelperFunctions;
 
@@ -33,8 +32,7 @@ public class AccelerometerListener implements SensorEventListener {
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
             Log.d("acc", String.valueOf(data.getTime()) + " " + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
-            Toast.makeText(mContext, "acc  ---"+ String.valueOf(data.getTime()) + " " + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()),
-                    Toast.LENGTH_LONG).show();
+            //Toast.makeText(mContext, "acc  ---"+ String.valueOf(data.getTime()) + " " + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()),Toast.LENGTH_LONG).show();
             dbNewData.addXYZ(data);
             // Do something with this sensor value.
             SensorHandlerService.flagForAcc = false;

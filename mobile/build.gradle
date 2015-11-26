@@ -26,4 +26,8 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.1.0'
     compile 'com.google.android.gms:play-services:8.1.0'
     compile 'com.android.support:design:23.1.0'
+    compile files('libs/Catalano.Android.Image.jar')
+    compile files('libs/Catalano.Core.jar')
+    compile files('libs/Catalano.MachineLearning.jar')
+    compile files('libs/Catalano.Math.jar')
 }

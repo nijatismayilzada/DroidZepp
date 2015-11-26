@@ -2,8 +2,11 @@ package com.droidzepp.droidzepp.classification;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
+import java.util.ArrayList;
 
 /**
  * Created by nijat on 28/10/15.
@@ -96,6 +99,64 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         db.close(); // Closing database connection
         return recent;
     }
+
+    double[][] getDataSet(){
+
+        String selectQuery = "SELECT "+ KEY_1 + ", " + KEY_2 + ", " + KEY_3 + ", " + KEY_4 + ", " + KEY_5 + ", " + KEY_6 + ", " + KEY_LID + " FROM " + TABLE_ACTIONS;
+        //String numberOfLabelsQuery = "SELECT count(" +KEY_NAME +") FROM " + TABLE_LABELS;
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor1 = db.rawQuery(selectQuery, null);
+       // Cursor cursor2 = db.rawQuery(numberOfLabelsQuery, null);
+
+        int numberOfActions = 0;
+
+       // if(cursor2 != null){
+           // cursor2.moveToFirst();
+            numberOfActions = 12;
+       // }
+        double[][] dataSet = new double[numberOfActions][870];
+
+        ArrayList data = new ArrayList();
+        int keyLid = 0;
+
+        if (cursor1.moveToFirst()) {
+            do {
+                if(cursor1.getInt(cursor1.getColumnIndex(KEY_LID)) == keyLid){
+                    data.add(cursor1.getDouble(0));
+                    data.add(cursor1.getDouble(1));
+                    data.add(cursor1.getDouble(2));
+                    data.add(cursor1.getDouble(3));
+                    data.add(cursor1.getDouble(4));
+                    data.add(cursor1.getDouble(5));
+                }
+                else{
+                    if(!data.isEmpty()){
+                        for(int i =0; i<870;i++) {
+                            dataSet[keyLid-1][i]= (double) data.get(i);
+                        }
+                    }
+                    keyLid = cursor1.getInt(cursor1.getColumnIndex(KEY_LID));
+                    data.clear();
+                    data.add(cursor1.getDouble(0));
+                    data.add(cursor1.getDouble(1));
+                    data.add(cursor1.getDouble(2));
+                    data.add(cursor1.getDouble(3));
+                    data.add(cursor1.getDouble(4));
+                    data.add(cursor1.getDouble(5));
+                }
+            } while (cursor1.moveToNext());
+        }
+
+        db.close();
+        return dataSet;
+    }
+
+    int[] getLabels(){
+        int[] labels = {0,0,0,0,1,1,1,1,2,2,2,2};
+        return labels;
+    }
+
+
 
     public static String getForeignKey() {
         return TABLE_LABELS + "("+ KEY_ID +")";
