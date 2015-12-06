@@ -6,8 +6,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import java.util.ArrayList;
-
 /**
  * Created by nijat on 28/10/15.
  */
@@ -100,7 +98,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         return recent;
     }
 
-    double[][] getDataSet(){
+    double[][][] getDataSet(){
 
         String selectQuery = "SELECT "+ KEY_1 + ", " + KEY_2 + ", " + KEY_3 + ", " + KEY_4 + ", " + KEY_5 + ", " + KEY_6 + ", " + KEY_LID + " FROM " + TABLE_ACTIONS;
         //String numberOfLabelsQuery = "SELECT count(" +KEY_NAME +") FROM " + TABLE_LABELS;
@@ -112,38 +110,25 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
        // if(cursor2 != null){
            // cursor2.moveToFirst();
-            numberOfActions = 12;
        // }
-        double[][] dataSet = new double[numberOfActions][870];
+        double[][][] dataSet = new double[12][145][6];
 
-        ArrayList data = new ArrayList();
-        int keyLid = 0;
-
+        int counter = 0;
+        int previous = 0;
         if (cursor1.moveToFirst()) {
             do {
-                if(cursor1.getInt(cursor1.getColumnIndex(KEY_LID)) == keyLid){
-                    data.add(cursor1.getDouble(0));
-                    data.add(cursor1.getDouble(1));
-                    data.add(cursor1.getDouble(2));
-                    data.add(cursor1.getDouble(3));
-                    data.add(cursor1.getDouble(4));
-                    data.add(cursor1.getDouble(5));
+                int klid = cursor1.getInt(cursor1.getColumnIndex(KEY_LID))-1;
+                if(klid>previous)
+                    counter = 0;
+                if (counter<145 && klid<12) {
+                    dataSet[klid][counter][0] = cursor1.getDouble(0);
+                    dataSet[klid][counter][1] = cursor1.getDouble(1);
+                    dataSet[klid][counter][2] = cursor1.getDouble(2);
+                    dataSet[klid][counter][3] = cursor1.getDouble(3);
+                    dataSet[klid][counter][4] = cursor1.getDouble(4);
+                    dataSet[klid][counter][5] = cursor1.getDouble(5);
                 }
-                else{
-                    if(!data.isEmpty()){
-                        for(int i =0; i<870;i++) {
-                            dataSet[keyLid-1][i]= (double) data.get(i);
-                        }
-                    }
-                    keyLid = cursor1.getInt(cursor1.getColumnIndex(KEY_LID));
-                    data.clear();
-                    data.add(cursor1.getDouble(0));
-                    data.add(cursor1.getDouble(1));
-                    data.add(cursor1.getDouble(2));
-                    data.add(cursor1.getDouble(3));
-                    data.add(cursor1.getDouble(4));
-                    data.add(cursor1.getDouble(5));
-                }
+                counter++;
             } while (cursor1.moveToNext());
         }
 
