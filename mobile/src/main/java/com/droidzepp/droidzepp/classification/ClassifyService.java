@@ -4,8 +4,10 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.StrictMode;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.droidzepp.droidzepp.datacollection.AccelerometerNewDataHandler;
 import com.droidzepp.droidzepp.datacollection.GyroscopeNewDataHandler;
@@ -32,17 +34,18 @@ public class ClassifyService extends Service {
     private Handler hndlCheckForStart;
     private Handler hndlClassify;
 
-
-    //Namespace of the Webservice - It is http://tempuri.org for .NET webservice
-    private static String NAMESPACE = "http://tempuri.org/";
     //Webservice URL - It is asmx file location hosted in the server in case of .Net
     //Change the IP address to your machine IP address
-    private static String URL = "http://192.168.2.3/HelloWorldWebService/Service.asmx";
+    private static String URLS = "http://asdfnijat.azurewebsites.net/Service.asmx";
+
+    private static String NAMESPACE = "http://tempuri.org/";
     //SOAP Action URI again http://tempuri.org
     private static String SOAP_ACTION = "http://tempuri.org/";
 
+    private static String METHOD_NAME = "Classify";
 
-    int recheckingInterval = 10000;
+
+    int recheckingInterval = 1000;
 
     private final Runnable prcsCheckForStart = new Runnable() {
         @Override
@@ -117,7 +120,7 @@ public class ClassifyService extends Service {
         actionsDB.addFeatures(newFeatures);
 
     }
-    void classify(){
+    void classify() {
         AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
         ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
@@ -138,61 +141,52 @@ public class ClassifyService extends Service {
             testData[i][5]=(double)gyroDataList.get(i).getZ();
         }
 
-
         String resTxt = null;
         // Create request
-        SoapObject request = new SoapObject(NAMESPACE, "Classify");
+        SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
 
 
+        PropertyInfo pi = new PropertyInfo();
+        pi.setName("dataset");
+        pi.setValue(dataset);
+        pi.type = double[][][].class;
+        request.addProperty(pi);
 
-        PropertyInfo sayHelloPI = new PropertyInfo();
-        // Set Name
-        sayHelloPI.setName("Name");
-        // Set Value
-        sayHelloPI.setValue(name);
-        // Set dataType
-        sayHelloPI.setType(String.class);
-        // Add the property to request object
-        request.addProperty(sayHelloPI);
+        PropertyInfo pi2 = new PropertyInfo();
+        pi2.setName("labels");
+        pi2.setValue(labels);
+        pi2.type = int[].class;
+        request.addProperty(pi2);
 
-
-        PropertyInfo sayHelloPI = new PropertyInfo();
-        // Set Name
-        sayHelloPI.setName("Name");
-        // Set Value
-        sayHelloPI.setValue(name);
-        // Set dataType
-        sayHelloPI.setType(String.class);
-        // Add the property to request object
-        request.addProperty(sayHelloPI);
-
-
-
-        PropertyInfo sayHelloPI = new PropertyInfo();
-        // Set Name
-        sayHelloPI.setName("Name");
-        // Set Value
-        sayHelloPI.setValue(name);
-        // Set dataType
-        sayHelloPI.setType(String.class);
-        // Add the property to request object
-        request.addProperty(sayHelloPI);
-
-
+        PropertyInfo pi3 = new PropertyInfo();
+        pi3.setName("testData");
+        pi3.setValue(testData);
+        pi3.type = double[][].class;
+        request.addProperty(pi3);
 
         // Create envelope
         SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(
                 SoapEnvelope.VER11);
-        //Set envelope as dotNet
-        envelope.dotNet = true;
-        // Set output SOAP object
-        envelope.setOutputSoapObject(request);
-        // Create HTTP call object
-        HttpTransportSE androidHttpTransport = new HttpTransportSE(URL);
 
+        envelope.dotNet = true;
+        envelope.setOutputSoapObject(request);
+
+        new Marshal3D().register(envelope);
+
+        new Marshal1D().register(envelope);
+
+        new Marshal2D().register(envelope);
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+
+        StrictMode.setThreadPolicy(policy);
+        // Create HTTP call object
+        HttpTransportSE androidHttpTransport = new HttpTransportSE(URLS);
+
+        androidHttpTransport.debug = true;
         try {
             // Invoke web service
-            androidHttpTransport.call(SOAP_ACTION+"Classify", envelope);
+            androidHttpTransport.call(SOAP_ACTION+METHOD_NAME, envelope);
             // Get the response
             SoapPrimitive response = (SoapPrimitive) envelope.getResponse();
             // Assign it to resTxt variable static variable
@@ -205,8 +199,8 @@ public class ClassifyService extends Service {
             resTxt = "Error occured";
         }
         //Return resTxt to calling object
-        return resTxt;
-
+        Log.d("Result: ", resTxt);
+        Toast.makeText(this, resTxt, Toast.LENGTH_LONG).show();
 
     }
 }

@@ -101,16 +101,9 @@ public class ActionsDatabase extends SQLiteOpenHelper {
     double[][][] getDataSet(){
 
         String selectQuery = "SELECT "+ KEY_1 + ", " + KEY_2 + ", " + KEY_3 + ", " + KEY_4 + ", " + KEY_5 + ", " + KEY_6 + ", " + KEY_LID + " FROM " + TABLE_ACTIONS;
-        //String numberOfLabelsQuery = "SELECT count(" +KEY_NAME +") FROM " + TABLE_LABELS;
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor1 = db.rawQuery(selectQuery, null);
-       // Cursor cursor2 = db.rawQuery(numberOfLabelsQuery, null);
 
-        int numberOfActions = 0;
-
-       // if(cursor2 != null){
-           // cursor2.moveToFirst();
-       // }
         double[][][] dataSet = new double[12][145][6];
 
         int counter = 0;
@@ -127,6 +120,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
                     dataSet[klid][counter][3] = cursor1.getDouble(3);
                     dataSet[klid][counter][4] = cursor1.getDouble(4);
                     dataSet[klid][counter][5] = cursor1.getDouble(5);
+                    previous = klid;
                 }
                 counter++;
             } while (cursor1.moveToNext());
@@ -140,8 +134,6 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         int[] labels = {0,0,0,0,1,1,1,1,2,2,2,2};
         return labels;
     }
-
-
 
     public static String getForeignKey() {
         return TABLE_LABELS + "("+ KEY_ID +")";
