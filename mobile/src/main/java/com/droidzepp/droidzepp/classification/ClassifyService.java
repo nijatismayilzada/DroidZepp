@@ -171,11 +171,11 @@ public class ClassifyService extends Service {
         envelope.dotNet = true;
         envelope.setOutputSoapObject(request);
 
-        new Marshal3D().register(envelope);
+        new MarshalDouble3D().register(envelope);
 
-        new Marshal1D().register(envelope);
+        new MarshalInt1D().register(envelope);
 
-        new Marshal2D().register(envelope);
+        new MarshalDouble2D().register(envelope);
 
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 

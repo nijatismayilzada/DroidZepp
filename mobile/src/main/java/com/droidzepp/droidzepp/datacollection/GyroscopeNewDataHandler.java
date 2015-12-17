@@ -38,7 +38,7 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    void addXYZ(XYZ data) {
+    long addXYZ(XYZ data) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -47,8 +47,9 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
         values.put(KEY_Z, data.getZ());
 
         // Inserting Row
-        db.insert(TABLE_GYROSCOPE, null, values);
+        long insertedRow = db.insert(TABLE_GYROSCOPE, null, values);
         db.close(); // Closing database connection
+        return insertedRow;
     }
 
     public List<XYZ> getAllData() {
