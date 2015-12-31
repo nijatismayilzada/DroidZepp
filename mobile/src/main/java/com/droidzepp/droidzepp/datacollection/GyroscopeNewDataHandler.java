@@ -38,7 +38,7 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    long addXYZ(XYZ data) {
+    public long addXYZ(XYZ data) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -53,7 +53,7 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
     }
 
     public List<XYZ> getAllData() {
-        List<XYZ> dataList = new ArrayList<XYZ>();
+        List<XYZ> dataList = new ArrayList<>();
         String selectQuery = "SELECT  * FROM " + TABLE_GYROSCOPE;
 
         SQLiteDatabase db = this.getWritableDatabase();

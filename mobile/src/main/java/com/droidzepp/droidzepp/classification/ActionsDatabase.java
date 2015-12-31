@@ -62,7 +62,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    void addFeatures(FeatureContainer data) {
+    public long addFeatures(FeatureContainer data) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -82,11 +82,12 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         values.put(KEY_LID, data.getLid());
 
         // Inserting Row
-        db.insert(TABLE_ACTIONS, null, values);
+        long rowNumber = db.insert(TABLE_ACTIONS, null, values);
         db.close(); // Closing database connection
+        return rowNumber;
     }
 
-    long addNewLabel(String newLabel) {
+    public long addNewLabel(String newLabel) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -98,7 +99,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         return recent;
     }
 
-    double[][][] getDataSet(){
+    public double[][][] getDataSet(){
 
         String selectQuery = "SELECT "+ KEY_1 + ", " + KEY_2 + ", " + KEY_3 + ", " + KEY_4 + ", " + KEY_5 + ", " + KEY_6 + ", " + KEY_LID + " FROM " + TABLE_ACTIONS;
         SQLiteDatabase db = this.getWritableDatabase();
@@ -130,8 +131,8 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         return dataSet;
     }
 
-    int[] getLabels(){
-        int[] labels = {0,0,0,0,1,1,1,1,2,2,2,2};
+    public int[] getLabels(){
+        int[] labels = {1,1,1,1,0,0,0,0,2,2,2,2};
         return labels;
     }
 
