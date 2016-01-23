@@ -76,7 +76,7 @@ public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
         return dataList;
     }
 
-    void clearTable(){
+    public void clearTable(){
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM xyzRecords;");
         db.close();

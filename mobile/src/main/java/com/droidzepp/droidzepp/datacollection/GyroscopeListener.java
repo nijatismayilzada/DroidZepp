@@ -5,6 +5,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
+import android.widget.Toast;
 
 public class GyroscopeListener implements SensorEventListener {
     private Context mContext;
@@ -28,10 +29,9 @@ public class GyroscopeListener implements SensorEventListener {
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
-            Log.d("gyr", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
-            //Toast.makeText(mContext, "gyro  ---" + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()), Toast.LENGTH_LONG).show();
+            Log.d("droidzepp.mob.gyro", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
+            Toast.makeText(mContext, "droidzepp.mob.gyro: " + String.valueOf(data.getX()) + ", " + String.valueOf(data.getY()) + ", " + String.valueOf(data.getZ()), Toast.LENGTH_SHORT).show();
             dbNewData.addXYZ(data);
-            // Do something with this sensor value.
             SensorHandlerService.flagForGyro = false;
         }
     }

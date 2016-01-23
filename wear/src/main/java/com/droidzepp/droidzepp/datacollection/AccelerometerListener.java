@@ -24,16 +24,15 @@ public class AccelerometerListener implements SensorEventListener {
         if (SensorHandlerService.flagForAcc) {
 
             XYZ data = new XYZ();
-            //AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
+            AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
             // Many sensors return 3 values, one for each axis.
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
-            Log.d("accWearable", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
-            Toast.makeText(mContext, "accWear  ---" + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()),
-                    Toast.LENGTH_LONG).show();
-            //dbNewData.addXYZ(data);
-            // Do something with this sensor value.
+            Log.d("droidzepp.wear.acc", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
+            Toast.makeText(mContext, "droidzepp.wear.acc: " + String.valueOf(data.getX()) + ", " + String.valueOf(data.getY()) + ", " + String.valueOf(data.getZ()),
+                    Toast.LENGTH_SHORT).show();
+            dbNewData.addXYZ(data);
             SensorHandlerService.flagForAcc = false;
         }
     }

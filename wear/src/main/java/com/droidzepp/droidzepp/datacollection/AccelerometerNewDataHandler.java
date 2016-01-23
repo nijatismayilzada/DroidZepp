@@ -38,7 +38,7 @@ public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
         onCreate(db);
     }
 
-    void addXYZ(XYZ data) {
+    public long addXYZ(XYZ data) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -47,8 +47,9 @@ public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
         values.put(KEY_Z, data.getZ());
 
         // Inserting Row
-        db.insert(TABLE_ACCELEROMETER, null, values);
+        long insertedRow = db.insert(TABLE_ACCELEROMETER, null, values);
         db.close(); // Closing database connection
+        return insertedRow;
     }
 
     public List<XYZ> getAllData() {
@@ -72,7 +73,7 @@ public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
         return dataList;
     }
 
-    void clearTable(){
+    public void clearTable(){
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM xyzRecords;");
         db.close();

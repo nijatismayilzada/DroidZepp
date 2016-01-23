@@ -79,7 +79,7 @@ public class ClassifyService extends Service {
 
         hndlCheckForStart = new Handler();
         hndlClassify = new Handler();
-        hndlCheckForStart.post(prcsCheckForStart);
+        //hndlCheckForStart.post(prcsCheckForStart);
         super.onCreate();
     }
 
