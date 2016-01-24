@@ -1,11 +1,15 @@
 package com.droidzepp.droidzepp.datacollection;
 
+import android.app.Service;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -17,9 +21,9 @@ import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
-import com.google.android.gms.wearable.WearableListenerService;
 
-public class SensorHandlerService extends WearableListenerService implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class SensorHandlerService extends Service implements DataApi.DataListener,
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
@@ -31,11 +35,11 @@ public class SensorHandlerService extends WearableListenerService implements Dat
     private Handler hndlEndRecording;
     private AccelerometerNewDataHandler dbNewAccData;
     private GyroscopeNewDataHandler dbNewGyroData;
-    private GoogleApiClient mGoogleApiClient;
     private int recordingLength = 15000;  //60000 = 1 minute
     private int sensorDelay = 200;
 
     private static final String START_KEY = "droidzepp.start";
+    private GoogleApiClient mGoogleApiClient;
 
     public static boolean flagForAcc = false;
     public static boolean flagForGyro = false;
@@ -76,6 +80,12 @@ public class SensorHandlerService extends WearableListenerService implements Dat
         }
     };
 
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
     @Override
     public void onCreate() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -94,8 +104,19 @@ public class SensorHandlerService extends WearableListenerService implements Dat
         hndlRecording = new Handler();
         dbNewAccData = new AccelerometerNewDataHandler(this);
         dbNewGyroData = new GyroscopeNewDataHandler(this);
-        Log.d("droidzepp.wear", "Initialized");
         super.onCreate();
+    }
+
+    @Override
+    public void onDestroy() {
+        hndlStartRecording.removeCallbacks(prcsStartRecording);
+        super.onDestroy();
+    }
+
+    @Override
+    public void onLowMemory() {
+        hndlStartRecording.removeCallbacks(prcsStartRecording);
+        super.onLowMemory();
     }
 
     @Override
@@ -125,18 +146,6 @@ public class SensorHandlerService extends WearableListenerService implements Dat
                 }
             }
         }
-    }
-
-    @Override
-    public void onDestroy() {
-        hndlStartRecording.removeCallbacks(prcsStartRecording);
-        super.onDestroy();
-    }
-
-    @Override
-    public void onLowMemory() {
-        hndlStartRecording.removeCallbacks(prcsStartRecording);
-        super.onLowMemory();
     }
 
     @Override

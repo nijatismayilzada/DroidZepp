@@ -14,7 +14,6 @@ import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEventBuffer;
@@ -22,7 +21,12 @@ import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
-public class SensorHandlerService extends Service implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class SensorHandlerService extends Service implements DataApi.DataListener,
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
@@ -32,6 +36,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private Handler hndlStartRecording;
     private Handler hndlRecording;
     private Handler hndlEndRecording;
+    private ExecutorService executorService;
     private AccelerometerNewDataHandler dbNewAccData;
     private GyroscopeNewDataHandler dbNewGyroData;
     private int recordingInterval = 60000;  // 1200000 = 20 minutes
@@ -39,28 +44,47 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private int sensorDelay = 200;
 
     private static final String START_KEY = "droidzepp.start";
+    private static final int CLIENT_CONNECTION_TIMEOUT = 10000;
     private GoogleApiClient mGoogleApiClient;
 
     public static boolean flagForAcc = false;
     public static boolean flagForGyro = false;
     public static boolean newDataRecorded = false;
 
+
     private final Runnable prcsStartRecording = new Runnable() {
         @Override
         public void run() {
-
-            PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/prcsStartRecording");
-            putDataMapReq.getDataMap().putBoolean(START_KEY, true);
-            PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
-            PendingResult<DataApi.DataItemResult> pendingResult =
-                    Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
-            pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+            executorService.submit(new Runnable() {
                 @Override
-                public void onResult(DataApi.DataItemResult dataItemResult) {
-                    Log.d("droidzepp.mob.start", "Sending start message: " + dataItemResult.getStatus().isSuccess());
+                public void run() {
+                    PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/prcsStartRecording");
+                    putDataMapReq.getDataMap().putBoolean(START_KEY, false);
+                    PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
+                    if (validateConnection()) {
+                        Log.d("droidzepp.mob", "connection is okay");
+                        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                            @Override
+                            public void onResult(DataApi.DataItemResult dataItemResult) {
+                                Log.d("droidzepp.mob.start", "Sending start message: " + dataItemResult.getStatus().isSuccess());
+                            }
+                        });
+                    }
+
+                    putDataMapReq.getDataMap().putBoolean(START_KEY, true);
+                    putDataReq = putDataMapReq.asPutDataRequest();
+                    if (validateConnection()) {
+                        Log.d("droidzepp.mob", "connection is okay");
+                        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                            @Override
+                            public void onResult(DataApi.DataItemResult dataItemResult) {
+                                Log.d("droidzepp.mob.start", "Sending start message: " + dataItemResult.getStatus().isSuccess());
+                            }
+                        });
+                    }
+
                 }
             });
-
             Log.d("p", "Recording started");
             dbNewAccData.clearTable();
             dbNewGyroData.clearTable();
@@ -101,6 +125,14 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
 
     @Override
     public void onCreate() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+        mGoogleApiClient.connect();
+
+        executorService = Executors.newCachedThreadPool();
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -123,7 +155,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     }
 
     @Override
-    public void onLowMemory(){
+    public void onLowMemory() {
         hndlStartRecording.removeCallbacks(prcsStartRecording);
         super.onLowMemory();
     }
@@ -146,5 +178,15 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
+    }
+
+    private boolean validateConnection() {
+        if (mGoogleApiClient.isConnected()) {
+            return true;
+        }
+
+        ConnectionResult result = mGoogleApiClient.blockingConnect(CLIENT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+
+        return result.isSuccess();
     }
 }
