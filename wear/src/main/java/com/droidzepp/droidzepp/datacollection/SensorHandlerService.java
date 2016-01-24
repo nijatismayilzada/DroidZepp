@@ -1,15 +1,11 @@
 package com.droidzepp.droidzepp.datacollection;
 
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -21,8 +17,9 @@ import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
+import com.google.android.gms.wearable.WearableListenerService;
 
-public class SensorHandlerService extends Service implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class SensorHandlerService extends WearableListenerService implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
@@ -86,6 +83,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
+        mGoogleApiClient.connect();
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -96,6 +94,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
         hndlRecording = new Handler();
         dbNewAccData = new AccelerometerNewDataHandler(this);
         dbNewGyroData = new GyroscopeNewDataHandler(this);
+        Log.d("droidzepp.wear", "Initialized");
         super.onCreate();
     }
 
@@ -111,6 +110,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
+        Log.d("droidzepp.wear", "New data event happened");
         for (DataEvent event : dataEvents) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
                 DataItem item = event.getDataItem();
@@ -130,21 +130,13 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     @Override
     public void onDestroy() {
         hndlStartRecording.removeCallbacks(prcsStartRecording);
-        Wearable.DataApi.removeListener(mGoogleApiClient,this);
         super.onDestroy();
     }
 
     @Override
     public void onLowMemory() {
         hndlStartRecording.removeCallbacks(prcsStartRecording);
-        Wearable.DataApi.removeListener(mGoogleApiClient, this);
         super.onLowMemory();
-    }
-
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
     }
 
     @Override
