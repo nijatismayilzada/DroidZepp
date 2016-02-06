@@ -5,28 +5,23 @@ package com.droidzepp.droidzepp.classification;
  */
 public class FeatureContainer {
 
-    String time;
-    float a;
-    float b;
-    float c;
-    float d;
-    float e;
-    float f;
-    long lid;
+    private String time;
+    private float accMX;
+    private float accMY;
+    private float accMZ;
+    private float gyroMX;
+    private float gyroMY;
+    private float gyroMZ;
+    private float accWX;
+    private float accWY;
+    private float accWZ;
+    private float gyroWX;
+    private float gyroWY;
+    private float gyroWZ;
+    private long lId;
+
 
     public FeatureContainer(){
-
-    }
-    public FeatureContainer(String time, float a, float b, float c, float d, float e, float f, long lid){
-        this.time = time;
-        this.a = a;
-        this.b = b;
-        this.c = c;
-        this.d = d;
-        this.e = e;
-        this.f = f;
-        this.lid = lid;
-
     }
 
     public String getTime() {
@@ -37,59 +32,107 @@ public class FeatureContainer {
         this.time = time;
     }
 
-    public float getA() {
-        return a;
+    public float getAccMX() {
+        return accMX;
     }
 
-    public void setA(float a) {
-        this.a = a;
+    public void setAccMX(float accMX) {
+        this.accMX = accMX;
     }
 
-    public float getB() {
-        return b;
+    public float getAccMY() {
+        return accMY;
     }
 
-    public void setB(float b) {
-        this.b = b;
+    public void setAccMY(float accMY) {
+        this.accMY = accMY;
     }
 
-    public float getC() {
-        return c;
+    public float getAccMZ() {
+        return accMZ;
     }
 
-    public void setC(float c) {
-        this.c = c;
+    public void setAccMZ(float accMZ) {
+        this.accMZ = accMZ;
     }
 
-    public float getD() {
-        return d;
+    public float getGyroMX() {
+        return gyroMX;
     }
 
-    public void setD(float d) {
-        this.d = d;
+    public void setGyroMX(float gyroMX) {
+        this.gyroMX = gyroMX;
     }
 
-    public float getE() {
-        return e;
+    public float getGyroMY() {
+        return gyroMY;
     }
 
-    public void setE(float e) {
-        this.e = e;
+    public void setGyroMY(float gyroMY) {
+        this.gyroMY = gyroMY;
     }
 
-    public float getF() {
-        return f;
+    public float getGyroMZ() {
+        return gyroMZ;
     }
 
-    public void setF(float f) {
-        this.f = f;
+    public void setGyroMZ(float gyroMZ) {
+        this.gyroMZ = gyroMZ;
     }
 
-    public long getLid() {
-        return lid;
+    public float getAccWX() {
+        return accWX;
     }
 
-    public void setLid(long lid) {
-        this.lid = lid;
+    public void setAccWX(float accWX) {
+        this.accWX = accWX;
+    }
+
+    public float getAccWY() {
+        return accWY;
+    }
+
+    public void setAccWY(float accWY) {
+        this.accWY = accWY;
+    }
+
+    public float getAccWZ() {
+        return accWZ;
+    }
+
+    public void setAccWZ(float accWZ) {
+        this.accWZ = accWZ;
+    }
+
+    public float getGyroWX() {
+        return gyroWX;
+    }
+
+    public void setGyroWX(float gyroWX) {
+        this.gyroWX = gyroWX;
+    }
+
+    public float getGyroWY() {
+        return gyroWY;
+    }
+
+    public void setGyroWY(float gyroWY) {
+        this.gyroWY = gyroWY;
+    }
+
+    public float getGyroWZ() {
+        return gyroWZ;
+    }
+
+    public void setGyroWZ(float gyroWZ) {
+        this.gyroWZ = gyroWZ;
+    }
+
+    public long getlId() {
+        return lId;
+    }
+
+    public void setlId(long lId) {
+        this.lId = lId;
     }
 }

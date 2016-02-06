@@ -16,19 +16,19 @@ public class ActionsDatabase extends SQLiteOpenHelper {
     private static final String TABLE_ACTIONS = "features";
     private static final String KEY_ID = "id";
     private static final String KEY_TIME = "time";
-    private static final String KEY_1 = "a";
-    private static final String KEY_2 = "b";
-    private static final String KEY_3 = "c";
-    private static final String KEY_4 = "d";
-    private static final String KEY_5 = "e";
-    private static final String KEY_6 = "f";
-    private static final String KEY_7 = "g";
-    private static final String KEY_8 = "h";
-    private static final String KEY_9 = "i";
-    private static final String KEY_10 = "j";
-    private static final String KEY_11 = "k";
-    private static final String KEY_12 = "l";
-    private static final String KEY_LID = "lid";
+    private static final String KEY_1 = "accMX";
+    private static final String KEY_2 = "accMY";
+    private static final String KEY_3 = "accMZ";
+    private static final String KEY_4 = "gyroMX";
+    private static final String KEY_5 = "gyroMY";
+    private static final String KEY_6 = "gyroMZ";
+    private static final String KEY_7 = "accWX";
+    private static final String KEY_8 = "accWY";
+    private static final String KEY_9 = "accWZ";
+    private static final String KEY_10 = "gyroWX";
+    private static final String KEY_11 = "gyroWY";
+    private static final String KEY_12 = "gyroWZ";
+    private static final String KEY_LID = "lId";
 
     private static final String TABLE_LABELS = "labels";
     private static final String KEY_NAME = "actionName";
@@ -67,19 +67,19 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
         ContentValues values = new ContentValues();
         values.put(KEY_TIME, data.getTime());
-        values.put(KEY_1, data.getA());
-        values.put(KEY_2, data.getB());
-        values.put(KEY_3, data.getC());
-        values.put(KEY_4, data.getD());
-        values.put(KEY_5, data.getE());
-        values.put(KEY_6, data.getF());
-        values.put(KEY_7, 0);
-        values.put(KEY_8, 0);
-        values.put(KEY_9, 0);
-        values.put(KEY_10, 0);
-        values.put(KEY_11, 0);
-        values.put(KEY_12, 0);
-        values.put(KEY_LID, data.getLid());
+        values.put(KEY_1, data.getAccMX());
+        values.put(KEY_2, data.getAccMY());
+        values.put(KEY_3, data.getAccMZ());
+        values.put(KEY_4, data.getGyroMX());
+        values.put(KEY_5, data.getGyroMY());
+        values.put(KEY_6, data.getGyroMZ());
+        values.put(KEY_7, data.getAccWX());
+        values.put(KEY_8, data.getAccWY());
+        values.put(KEY_9, data.getAccWZ());
+        values.put(KEY_10, data.getGyroWX());
+        values.put(KEY_11, data.getGyroWY());
+        values.put(KEY_12, data.getGyroWZ());
+        values.put(KEY_LID, data.getlId());
 
         // Inserting Row
         long rowNumber = db.insert(TABLE_ACTIONS, null, values);
@@ -101,7 +101,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     public double[][][] getDataSet(){
 
-        String selectQuery = "SELECT "+ KEY_1 + ", " + KEY_2 + ", " + KEY_3 + ", " + KEY_4 + ", " + KEY_5 + ", " + KEY_6 + ", " + KEY_LID + " FROM " + TABLE_ACTIONS;
+        String selectQuery = "SELECT * FROM " + TABLE_ACTIONS;
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor1 = db.rawQuery(selectQuery, null);
 

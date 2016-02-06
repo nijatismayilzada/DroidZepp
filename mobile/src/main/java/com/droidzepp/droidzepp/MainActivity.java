@@ -10,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.droidzepp.droidzepp.classification.ClassifyService;
 import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
 
 public class MainActivity extends AppCompatActivity {
@@ -32,8 +33,8 @@ public class MainActivity extends AppCompatActivity {
 
         Intent sensorCollectionService = new Intent(MainActivity.this, SensorHandlerService.class);
         startService(sensorCollectionService);
-//        Intent classifierService = new Intent(MainActivity.this, ClassifyService.class);
-//        startService(classifierService);
+        Intent classifierService = new Intent(MainActivity.this, ClassifyService.class);
+        startService(classifierService);
     }
 
     @Override

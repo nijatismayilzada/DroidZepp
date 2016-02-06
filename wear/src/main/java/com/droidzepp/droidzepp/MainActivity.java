@@ -7,6 +7,7 @@ import android.support.wearable.view.WatchViewStub;
 import android.widget.TextView;
 
 import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
+import com.droidzepp.droidzepp.sendtoclassify.SendToClassifyService;
 
 public class MainActivity extends Activity {
 
@@ -26,5 +27,7 @@ public class MainActivity extends Activity {
 
         Intent sensorCollectionService = new Intent(MainActivity.this, SensorHandlerService.class);
         startService(sensorCollectionService);
+        Intent sendToClassifyService = new Intent(MainActivity.this, SendToClassifyService.class);
+        startService(sendToClassifyService);
     }
 }

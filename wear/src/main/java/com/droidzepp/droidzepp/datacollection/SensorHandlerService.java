@@ -131,14 +131,14 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
-        Log.d("droidzepp.wear", "New data event happened");
+        Log.d("droidzepp.wear.start", "New start event happened");
         for (DataEvent event : dataEvents) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
                 DataItem item = event.getDataItem();
                 if (item.getUri().getPath().compareTo("/prcsStartRecording") == 0) {
                     DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
                     startFlagFromMobile = dataMap.getBoolean(START_KEY);
-                    Log.d("droidzepp.wear", "startFlagFromMobile: " + Boolean.toString(startFlagFromMobile));
+                    Log.d("droidzepp.wear.start", "startFlagFromMobile: " + Boolean.toString(startFlagFromMobile));
                     if (startFlagFromMobile) {
                         hndlStartRecording.post(prcsStartRecording);
                         startFlagFromMobile = false;

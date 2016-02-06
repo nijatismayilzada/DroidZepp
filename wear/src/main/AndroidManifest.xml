@@ -20,6 +20,7 @@
             </intent-filter>
         </activity>
         <service android:name=".datacollection.SensorHandlerService" ></service>
+        <service android:name=".sendtoclassify.SendToClassifyService" ></service>
     </application>
 
 </manifest>

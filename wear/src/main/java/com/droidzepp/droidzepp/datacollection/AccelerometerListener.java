@@ -5,7 +5,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.util.Log;
-import android.widget.Toast;
 
 public class AccelerometerListener implements SensorEventListener {
     private Context mContext;
@@ -25,13 +24,11 @@ public class AccelerometerListener implements SensorEventListener {
 
             XYZ data = new XYZ();
             AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
-            // Many sensors return 3 values, one for each axis.
+            // Many sensors return 3 values, one for each axis
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
             Log.d("droidzepp.wear.acc", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
-            Toast.makeText(mContext, "droidzepp.wear.acc: " + String.valueOf(data.getX()) + ", " + String.valueOf(data.getY()) + ", " + String.valueOf(data.getZ()),
-                    Toast.LENGTH_SHORT).show();
             dbNewData.addXYZ(data);
             SensorHandlerService.flagForAcc = false;
         }
