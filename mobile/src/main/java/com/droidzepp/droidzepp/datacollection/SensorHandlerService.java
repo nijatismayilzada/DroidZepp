@@ -43,6 +43,10 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private int recordingLength = 15000;  //60000 = 1 minute
     private int sensorDelay = 200;
 
+
+    public static final int MSG_REGISTER_CLIENT = 1;
+    public static final int MSG_UNREGISTER_CLIENT = 2;
+
     private static final String START_KEY = "droidzepp.start";
     private static final int CLIENT_CONNECTION_TIMEOUT = 10000;
     private GoogleApiClient mGoogleApiClient;

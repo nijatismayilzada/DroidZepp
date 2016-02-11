@@ -3,8 +3,11 @@ package com.droidzepp.droidzepp.classification;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.droidzepp.droidzepp.datacollection.AccelerometerNewDataHandler;
@@ -36,15 +39,17 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 //    private Handler hndlClassify;
     private static final String DATA_KEY = "droidzepp.wear.data";
     private GoogleApiClient mGoogleApiClient;
+    final Messenger messageReceiver = new Messenger(new IncomingHandler());
+    ArrayList<Messenger> messageSender = new ArrayList<>();
 
-    //Webservice URL - It is asmx file location hosted in the server in case of .Net
-    //Change the IP address to your machine IP address
+    public static final int MSG_START_RECORDING = 3;
+    public static final int MSG_REGISTER_CLIENT = 1;
+    public static final int MSG_UNREGISTER_CLIENT = 2;
+    public static final int MSG_RECORDING_DONE = 4;
+
     private static String URLS = "http://asdfnijat.azurewebsites.net/Service.asmx";
-
     private static String NAMESPACE = "http://tempuri.org/";
-    //SOAP Action URI again http://tempuri.org
     private static String SOAP_ACTION = "http://tempuri.org/";
-
     private static String METHOD_NAME = "Classify";
 
 
@@ -71,10 +76,10 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 //            //classify();
 //        }
 //    };
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        Log.d("droidzepp.mob", "Binding...");
+        return messageReceiver.getBinder();
     }
 
     @Override
@@ -103,7 +108,26 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         super.onLowMemory();
     }
 
-    void extractfeatures(ArrayList<DataMap> wData){
+    class IncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_REGISTER_CLIENT:
+                    messageSender.add(msg.replyTo);
+                    break;
+                case MSG_UNREGISTER_CLIENT:
+                    messageSender.remove(msg.replyTo);
+                    break;
+                case MSG_START_RECORDING:
+                    Log.d("droidzepp.mob.class", "Recording..");
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
+
+    public void extractfeatures(ArrayList<DataMap> wData){
         Log.d("droidzepp.mob.data", "New data is received and it will be combined with existing data");
         AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
@@ -113,7 +137,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         List<XYZ> mDataGyro = dbGyroNewData.getAllData();
         FeatureContainer extractedFeatures = new FeatureContainer();
 
-        long actionLabelID = actionsDB.addNewLabel("unknown action");
+        long actionLabelID = actionsDB.addNewLabel("unknown action2");
         Log.d("droidzepp.mob.data", "Most recent action label: " + actionLabelID);
         int sizeOfDataSetToBeAdded = Math.min(Math.min(mDataAcc.size(),mDataGyro.size()), wData.size());
 
@@ -135,6 +159,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             extractedFeatures.setlId(actionLabelID);
             actionsDB.addFeatures(extractedFeatures);
         }
+        updateListViewInMainActivity();
     }
 //    void classify() {
 //        AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
@@ -247,5 +272,17 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d("droidzepp.mobile", "Connection failed");
+    }
+
+    private void updateListViewInMainActivity () {
+        for (int i=messageSender.size()-1; i>=0; i--) {
+            try {
+                // Send data as an Integer
+                messageSender.get(i).send(Message.obtain(null, MSG_RECORDING_DONE));
+            }
+            catch (RemoteException e) {
+                messageSender.remove(i);
+            }
+        }
     }
 }

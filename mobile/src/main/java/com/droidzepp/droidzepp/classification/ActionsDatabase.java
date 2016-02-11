@@ -6,6 +6,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.droidzepp.droidzepp.RecordedActionListElement;
+
+import java.util.ArrayList;
+
 /**
  * Created by nijat on 28/10/15.
  */
@@ -99,7 +103,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         return recent;
     }
 
-    public double[][][] getDataSet(){
+    public double[][][] getDataSet() {
 
         String selectQuery = "SELECT * FROM " + TABLE_ACTIONS;
         SQLiteDatabase db = this.getWritableDatabase();
@@ -111,10 +115,10 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         int previous = 0;
         if (cursor1.moveToFirst()) {
             do {
-                int klid = cursor1.getInt(cursor1.getColumnIndex(KEY_LID))-1;
-                if(klid>previous)
+                int klid = cursor1.getInt(cursor1.getColumnIndex(KEY_LID)) - 1;
+                if (klid > previous)
                     counter = 0;
-                if (counter<145 && klid<12) {
+                if (counter < 145 && klid < 12) {
                     dataSet[klid][counter][0] = cursor1.getDouble(0);
                     dataSet[klid][counter][1] = cursor1.getDouble(1);
                     dataSet[klid][counter][2] = cursor1.getDouble(2);
@@ -131,12 +135,27 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         return dataSet;
     }
 
-    public int[] getLabels(){
-        int[] labels = {1,1,1,1,0,0,0,0,2,2,2,2};
+    public int[] getLabels() {
+        int[] labels = {1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 2, 2};
         return labels;
     }
 
     public static String getForeignKey() {
-        return TABLE_LABELS + "("+ KEY_ID +")";
+        return TABLE_LABELS + "(" + KEY_ID + ")";
+    }
+
+    public ArrayList<RecordedActionListElement> getRecordedActions() {
+        String selectQuery = "SELECT * FROM " + TABLE_LABELS;
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+
+        ArrayList<RecordedActionListElement> recordedActions = new ArrayList<>();
+        if (cursor.moveToFirst()) {
+            do {
+                recordedActions.add(new RecordedActionListElement(cursor.getString(cursor.getColumnIndex(KEY_NAME)), cursor.getLong(cursor.getColumnIndex(KEY_ID))));
+            } while (cursor.moveToNext());
+        }
+        db.close();
+        return recordedActions;
     }
 }
