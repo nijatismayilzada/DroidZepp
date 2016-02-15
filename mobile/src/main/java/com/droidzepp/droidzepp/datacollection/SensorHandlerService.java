@@ -9,7 +9,9 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -21,6 +23,7 @@ import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -46,10 +49,15 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
 
     public static final int MSG_REGISTER_CLIENT = 1;
     public static final int MSG_UNREGISTER_CLIENT = 2;
+    public static final int MSG_START_RECORDING = 3;
+    public static final int MSG_RECORDING_DONE = 4;
 
     private static final String START_KEY = "droidzepp.start";
     private static final int CLIENT_CONNECTION_TIMEOUT = 10000;
     private GoogleApiClient mGoogleApiClient;
+
+    final Messenger messageReceiver = new Messenger(new IncomingHandler());
+    ArrayList<Messenger> messageSender = new ArrayList<>();
 
     public static boolean flagForAcc = false;
     public static boolean flagForGyro = false;
@@ -96,7 +104,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
             mSensorManager.registerListener(mGyroEventListener, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
             hndlRecording.post(prcsRecording);
             hndlEndRecording.postDelayed(prcsEndRecording, recordingLength);
-            hndlStartRecording.postDelayed(prcsStartRecording, recordingInterval);
+            //hndlStartRecording.postDelayed(prcsStartRecording, recordingInterval);
         }
     };
 
@@ -118,15 +126,45 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
             mSensorManager.unregisterListener(mGyroEventListener, mGyroscope);
             hndlEndRecording.removeCallbacks(prcsEndRecording);
             newDataRecorded = true;
+
+            for (int i=messageSender.size()-1; i>=0; i--) {
+                try {
+                    // Send data as an Integer
+                    messageSender.get(i).send(Message.obtain(null, MSG_RECORDING_DONE));
+                }
+                catch (RemoteException e) {
+                    messageSender.remove(i);
+                }
+            }
+
         }
     };
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        Log.d("droidzepp.mob", "Binding...");
+        return messageReceiver.getBinder();
     }
 
+    class IncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_REGISTER_CLIENT:
+                    messageSender.add(msg.replyTo);
+                    break;
+                case MSG_UNREGISTER_CLIENT:
+                    messageSender.remove(msg.replyTo);
+                    break;
+                case MSG_START_RECORDING:
+                    Log.d("droidzepp.mob.class", "Recording..");
+                    hndlStartRecording.post(prcsStartRecording);
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
     @Override
     public void onCreate() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -148,7 +186,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
         dbNewAccData = new AccelerometerNewDataHandler(this);
         dbNewGyroData = new GyroscopeNewDataHandler(this);
 
-        hndlStartRecording.post(prcsStartRecording);
+        //hndlStartRecording.post(prcsStartRecording);
         super.onCreate();
     }
 

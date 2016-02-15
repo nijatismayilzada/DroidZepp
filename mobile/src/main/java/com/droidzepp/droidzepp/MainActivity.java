@@ -1,5 +1,7 @@
 package com.droidzepp.droidzepp;
 
+import android.app.DialogFragment;
+import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -10,29 +12,34 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ListView;
 
 import com.droidzepp.droidzepp.classification.ActionsDatabase;
 import com.droidzepp.droidzepp.classification.ClassifyService;
 import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ConfirmationDialogFragment.ConfirmationDialogListener {
 
     ActionsDatabase actionsDatabase;
     static final int MSG_RECORDING_DONE = 4;
+    static final int MSG_COMBINING_DONE = 5;
+    static final int MSG_START_RECORDING = 3;
     ListView actionsListView;
+    ProgressDialog progress;
     ActionArrayAdapter actionsListAdapter;
 
     Messenger classifyServiceMessageSender = null;
     boolean mClassifyBound;
 
-//    Messenger sensorHandlerServiceMessageSender = null;
-//    boolean mSensorHandlerBound;
+    Messenger sensorHandlerServiceMessageSender = null;
+    boolean mSensorHandlerBound;
 
     final Messenger messageReceiver = new Messenger(new IncomingHandler());
 
@@ -56,26 +63,27 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-//    private ServiceConnection sensorHandlerServiceConnection = new ServiceConnection() {
-//        public void onServiceConnected(ComponentName className, IBinder service) {
-//            sensorHandlerServiceMessageSender = new Messenger(service);
-//            mSensorHandlerBound = true;
-//            try {
-//                Message msg = Message.obtain(null, SensorHandlerService.MSG_REGISTER_CLIENT);
-//                msg.replyTo = messageReceiver;
-//                sensorHandlerServiceMessageSender.send(msg);
-//            }
-//            catch (RemoteException e) {
-//                // In this case the service has crashed before we could even do anything with it
-//            }
-//
-//        }
-//
-//        public void onServiceDisconnected(ComponentName className) {
-//            sensorHandlerServiceMessageSender = null;
-//            mSensorHandlerBound = false;
-//        }
-//    };
+
+    private ServiceConnection sensorHandlerServiceConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            sensorHandlerServiceMessageSender = new Messenger(service);
+            mSensorHandlerBound = true;
+            try {
+                Message msg = Message.obtain(null, SensorHandlerService.MSG_REGISTER_CLIENT);
+                msg.replyTo = messageReceiver;
+                sensorHandlerServiceMessageSender.send(msg);
+            }
+            catch (RemoteException e) {
+                // In this case the service has crashed before we could even do anything with it
+            }
+
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            sensorHandlerServiceMessageSender = null;
+            mSensorHandlerBound = false;
+        }
+    };
 
     class IncomingHandler extends Handler {
         @Override
@@ -83,6 +91,10 @@ public class MainActivity extends AppCompatActivity {
             switch (msg.what) {
                 case MSG_RECORDING_DONE:
                     Log.d("droidzepp.mob.main", "Recording done");
+                    progress.dismiss();
+                    break;
+                case MSG_COMBINING_DONE:
+                    Log.d("droidzepp.mob.main", "Combining done");
                     actionsListAdapter.updateContent(actionsDatabase.getRecordedActions());
                     actionsListView.invalidateViews();
                     actionsListView.setAdapter(actionsListAdapter);
@@ -95,20 +107,38 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onDialogPositiveClick(DialogFragment dialog) {
+        Log.d("droidzepp.main", "Start clicked");
+        progress = ProgressDialog.show(this, "DroidZepp", "Recording the action...", true, false);
+        try {
+            sensorHandlerServiceMessageSender.send(Message.obtain(null, MSG_START_RECORDING));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onDialogNegativeClick(DialogFragment dialog) {
+        Log.d("droidzepp.main", "Cancel clicked");
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-//        fab.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
 //                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
 //                        .setAction("Action", null).show();
-//            }
-//        });
+                DialogFragment confirmation = new ConfirmationDialogFragment(getApplicationContext());
+                confirmation.show(getFragmentManager(), "Confirmation");
+            }
+        });
         actionsDatabase = new ActionsDatabase(this);
         actionsListView = (ListView) findViewById(R.id.recordedActionsList);
         actionsListAdapter = new ActionArrayAdapter(this, R.layout.listitem, actionsDatabase.getRecordedActions());
@@ -132,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
         startService(sensorHandlerService);
         startService(classifyService);
         bindService(classifyService, classifyServiceConnection, Context.BIND_AUTO_CREATE);
-//        bindService(sensorHandlerService, sensorHandlerServiceConnection, Context.BIND_AUTO_CREATE);
+        bindService(sensorHandlerService, sensorHandlerServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
@@ -143,10 +173,10 @@ public class MainActivity extends AppCompatActivity {
             unbindService(classifyServiceConnection);
             mClassifyBound = false;
         }
-//        if(mSensorHandlerBound){
-//            unbindService(sensorHandlerServiceConnection);
-//            mSensorHandlerBound = false;
-//        }
+        if(mSensorHandlerBound){
+            unbindService(sensorHandlerServiceConnection);
+            mSensorHandlerBound = false;
+        }
     }
 
     @Override

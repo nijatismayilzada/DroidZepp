@@ -45,7 +45,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     public static final int MSG_START_RECORDING = 3;
     public static final int MSG_REGISTER_CLIENT = 1;
     public static final int MSG_UNREGISTER_CLIENT = 2;
-    public static final int MSG_RECORDING_DONE = 4;
+    public static final int MSG_COMBINING_DONE = 5;
 
     private static String URLS = "http://asdfnijat.azurewebsites.net/Service.asmx";
     private static String NAMESPACE = "http://tempuri.org/";
@@ -117,9 +117,6 @@ public class ClassifyService extends Service implements DataApi.DataListener,
                     break;
                 case MSG_UNREGISTER_CLIENT:
                     messageSender.remove(msg.replyTo);
-                    break;
-                case MSG_START_RECORDING:
-                    Log.d("droidzepp.mob.class", "Recording..");
                     break;
                 default:
                     super.handleMessage(msg);
@@ -278,7 +275,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         for (int i=messageSender.size()-1; i>=0; i--) {
             try {
                 // Send data as an Integer
-                messageSender.get(i).send(Message.obtain(null, MSG_RECORDING_DONE));
+                messageSender.get(i).send(Message.obtain(null, MSG_COMBINING_DONE));
             }
             catch (RemoteException e) {
                 messageSender.remove(i);
