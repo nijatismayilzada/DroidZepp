@@ -24,24 +24,33 @@ import android.widget.ListView;
 import com.droidzepp.droidzepp.classification.ActionsDatabase;
 import com.droidzepp.droidzepp.classification.ClassifyService;
 import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
+import com.droidzepp.droidzepp.uiclasses.ActionArrayAdapter;
+import com.droidzepp.droidzepp.uiclasses.ClassificationDialogFragment;
+import com.droidzepp.droidzepp.uiclasses.ConfirmationDialogFragment;
 
-public class MainActivity extends AppCompatActivity implements ConfirmationDialogFragment.ConfirmationDialogListener {
+public class MainActivity extends AppCompatActivity implements ConfirmationDialogFragment.ConfirmationDialogListener, ClassificationDialogFragment.ClassificationDialogListener {
 
     ActionsDatabase actionsDatabase;
     static final int MSG_RECORDING_DONE = 4;
     static final int MSG_COMBINING_DONE = 5;
     static final int MSG_START_RECORDING = 3;
+    static int recentRecordedActionID;
+    private static final String LOGTAG = "MainActivity";
+
     ListView actionsListView;
     ProgressDialog progress;
+    DialogFragment confirmation;
+    DialogFragment classification;
     ActionArrayAdapter actionsListAdapter;
 
-    Messenger classifyServiceMessageSender = null;
+    // Messengers between back-end services and front-end
+    final Messenger messageReceiver = new Messenger(new IncomingHandler());
+
+    Messenger classifyServiceMessageSender;
     boolean mClassifyBound;
 
-    Messenger sensorHandlerServiceMessageSender = null;
+    Messenger sensorHandlerServiceMessageSender;
     boolean mSensorHandlerBound;
-
-    final Messenger messageReceiver = new Messenger(new IncomingHandler());
 
     private ServiceConnection classifyServiceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -51,8 +60,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
                 Message msg = Message.obtain(null, ClassifyService.MSG_REGISTER_CLIENT);
                 msg.replyTo = messageReceiver;
                 classifyServiceMessageSender.send(msg);
-            }
-            catch (RemoteException e) {
+            } catch (RemoteException e) {
                 // In this case the service has crashed before we could even do anything with it
             }
         }
@@ -72,8 +80,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
                 Message msg = Message.obtain(null, SensorHandlerService.MSG_REGISTER_CLIENT);
                 msg.replyTo = messageReceiver;
                 sensorHandlerServiceMessageSender.send(msg);
-            }
-            catch (RemoteException e) {
+            } catch (RemoteException e) {
                 // In this case the service has crashed before we could even do anything with it
             }
 
@@ -84,43 +91,6 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
             mSensorHandlerBound = false;
         }
     };
-
-    class IncomingHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MSG_RECORDING_DONE:
-                    Log.d("droidzepp.mob.main", "Recording done");
-                    progress.dismiss();
-                    break;
-                case MSG_COMBINING_DONE:
-                    Log.d("droidzepp.mob.main", "Combining done");
-                    actionsListAdapter.updateContent(actionsDatabase.getRecordedActions());
-                    actionsListView.invalidateViews();
-                    actionsListView.setAdapter(actionsListAdapter);
-                    Log.d("droidzepp.mob.main", "Adapter updated");
-                    break;
-                default:
-                    super.handleMessage(msg);
-            }
-        }
-    }
-
-    @Override
-    public void onDialogPositiveClick(DialogFragment dialog) {
-        Log.d("droidzepp.main", "Start clicked");
-        progress = ProgressDialog.show(this, "DroidZepp", "Recording the action...", true, false);
-        try {
-            sensorHandlerServiceMessageSender.send(Message.obtain(null, MSG_START_RECORDING));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onDialogNegativeClick(DialogFragment dialog) {
-        Log.d("droidzepp.main", "Cancel clicked");
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,20 +105,19 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
             public void onClick(View view) {
 //                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
 //                        .setAction("Action", null).show();
-                DialogFragment confirmation = new ConfirmationDialogFragment(getApplicationContext());
+                confirmation = new ConfirmationDialogFragment(getApplicationContext());
                 confirmation.show(getFragmentManager(), "Confirmation");
             }
         });
         actionsDatabase = new ActionsDatabase(this);
-        actionsListView = (ListView) findViewById(R.id.recordedActionsList);
-        actionsListAdapter = new ActionArrayAdapter(this, R.layout.listitem, actionsDatabase.getRecordedActions());
+        actionsListView = (ListView) findViewById(R.id.actions_listview);
+        actionsListAdapter = new ActionArrayAdapter(this, R.layout.actions_list_item, actionsDatabase.getRecordedActions());
         actionsListView.setAdapter(actionsListAdapter);
 
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -173,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
             unbindService(classifyServiceConnection);
             mClassifyBound = false;
         }
-        if(mSensorHandlerBound){
+        if (mSensorHandlerBound) {
             unbindService(sensorHandlerServiceConnection);
             mSensorHandlerBound = false;
         }
@@ -181,16 +150,59 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog, String addedLabel) {
+        Log.d(LOGTAG, "Save clicked");
+        actionsDatabase.updateLabel(recentRecordedActionID, addedLabel);
+        actionsListAdapter.updateContent(actionsDatabase.getRecordedActions());
+        actionsListView.invalidateViews();
+        actionsListView.setAdapter(actionsListAdapter);
+    }
+
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog) {
+        Log.d(LOGTAG, "Start clicked");
+        progress = ProgressDialog.show(this, "DroidZepp", "Recording the action...", true, false);
+        try {
+            sensorHandlerServiceMessageSender.send(Message.obtain(null, MSG_START_RECORDING));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onDialogNegativeClick(DialogFragment dialog) {
+        Log.d(LOGTAG, "Cancel clicked");
+    }
+
+    class IncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what > 10) {
+                recentRecordedActionID = msg.what - 11;
+            }
+            switch (msg.what) {
+                case MSG_RECORDING_DONE:
+                    Log.d(LOGTAG, "Recording done");
+                    progress.dismiss();
+                    progress = ProgressDialog.show(MainActivity.this, "DroidZepp", "Receiving wearable device data...", true, false);
+                    break;
+                case MSG_COMBINING_DONE:
+                    Log.d(LOGTAG, "Receiving and combining of wearable data is done");
+                    progress.dismiss();
+                    classification = new ClassificationDialogFragment(getApplicationContext());
+                    classification.show(getFragmentManager(), "Classification");
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
     }
 }

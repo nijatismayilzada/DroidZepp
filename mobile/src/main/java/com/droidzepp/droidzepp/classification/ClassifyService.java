@@ -46,6 +46,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     public static final int MSG_REGISTER_CLIENT = 1;
     public static final int MSG_UNREGISTER_CLIENT = 2;
     public static final int MSG_COMBINING_DONE = 5;
+    public static int MSG_LABEL_ID = 10;
 
     private static String URLS = "http://asdfnijat.azurewebsites.net/Service.asmx";
     private static String NAMESPACE = "http://tempuri.org/";
@@ -124,7 +125,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         }
     }
 
-    public void extractfeatures(ArrayList<DataMap> wData){
+    public long extractfeatures(ArrayList<DataMap> wData){
         Log.d("droidzepp.mob.data", "New data is received and it will be combined with existing data");
         AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
@@ -134,7 +135,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         List<XYZ> mDataGyro = dbGyroNewData.getAllData();
         FeatureContainer extractedFeatures = new FeatureContainer();
 
-        long actionLabelID = actionsDB.addNewLabel("unknown action2");
+        long actionLabelID = actionsDB.addNewLabel("unknown action");
         Log.d("droidzepp.mob.data", "Most recent action label: " + actionLabelID);
         int sizeOfDataSetToBeAdded = Math.min(Math.min(mDataAcc.size(),mDataGyro.size()), wData.size());
 
@@ -156,7 +157,10 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             extractedFeatures.setlId(actionLabelID);
             actionsDB.addFeatures(extractedFeatures);
         }
-        updateListViewInMainActivity();
+        sendMessageToMainActivity(MSG_COMBINING_DONE);
+        actionLabelID = actionLabelID + 11;
+        sendMessageToMainActivity((int) actionLabelID);
+        return actionLabelID;
     }
 //    void classify() {
 //        AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
@@ -249,6 +253,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 
     @Override
     public void onConnectionSuspended(int i) {
+        // TODO
 
     }
 
@@ -271,11 +276,11 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         Log.d("droidzepp.mobile", "Connection failed");
     }
 
-    private void updateListViewInMainActivity () {
+    private void sendMessageToMainActivity(int message){
         for (int i=messageSender.size()-1; i>=0; i--) {
             try {
                 // Send data as an Integer
-                messageSender.get(i).send(Message.obtain(null, MSG_COMBINING_DONE));
+                messageSender.get(i).send(Message.obtain(null, message));
             }
             catch (RemoteException e) {
                 messageSender.remove(i);

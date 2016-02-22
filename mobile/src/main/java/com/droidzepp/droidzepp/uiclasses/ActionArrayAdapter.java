@@ -1,4 +1,4 @@
-package com.droidzepp.droidzepp;
+package com.droidzepp.droidzepp.uiclasses;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -6,6 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
+
+import com.droidzepp.droidzepp.R;
 
 import java.util.ArrayList;
 
@@ -43,11 +45,11 @@ public class ActionArrayAdapter extends ArrayAdapter<RecordedActionListElement> 
 
         if (convertView == null) {
             LayoutInflater vi = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            convertView = vi.inflate(R.layout.listitem, null);
+            convertView = vi.inflate(R.layout.actions_list_item, null);
 
             holder = new ViewHolder();
-            holder.actionName = (TextView) convertView.findViewById(R.id.actionTitle);
-            holder.lId = (TextView) convertView.findViewById(R.id.actionlId);
+            holder.actionName = (TextView) convertView.findViewById(R.id.action_title);
+            holder.lId = (TextView) convertView.findViewById(R.id.action_lId);
             convertView.setTag(holder);
         }
         else {

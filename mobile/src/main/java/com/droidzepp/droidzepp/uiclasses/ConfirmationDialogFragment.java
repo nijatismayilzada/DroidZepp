@@ -1,4 +1,4 @@
-package com.droidzepp.droidzepp;
+package com.droidzepp.droidzepp.uiclasses;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -9,6 +9,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 
+import com.droidzepp.droidzepp.R;
+
 public class ConfirmationDialogFragment extends DialogFragment {
 
     Context context;
@@ -18,8 +20,8 @@ public class ConfirmationDialogFragment extends DialogFragment {
     }
 
     public interface ConfirmationDialogListener {
-        public void onDialogPositiveClick(DialogFragment dialog);
-        public void onDialogNegativeClick(DialogFragment dialog);
+        void onDialogPositiveClick(DialogFragment dialog);
+        void onDialogNegativeClick(DialogFragment dialog);
     }
 
     ConfirmationDialogListener mListener;

@@ -1,4 +1,4 @@
-package com.droidzepp.droidzepp;
+package com.droidzepp.droidzepp.uiclasses;
 
 /**
  * Created by nijat on 07/02/16.

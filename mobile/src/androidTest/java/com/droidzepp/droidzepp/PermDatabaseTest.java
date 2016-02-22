@@ -22,7 +22,7 @@ public class PermDatabaseTest extends ApplicationTestCase<Application> {
 
     public void testShouldReturnRowNumberOfNewlyAddedAction(){
         ActionsDatabase db = new ActionsDatabase(application.getApplicationContext());
-        FeatureContainer newActionFeatures = new FeatureContainer("time", 1, 2, 3, 4, 5, 6, 100);
+        FeatureContainer newActionFeatures = new FeatureContainer("time", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 100);
         long result = db.addFeatures(newActionFeatures);
 
         assertNotNull(result);

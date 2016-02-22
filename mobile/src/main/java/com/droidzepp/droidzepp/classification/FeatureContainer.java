@@ -24,6 +24,23 @@ public class FeatureContainer {
     public FeatureContainer(){
     }
 
+    public FeatureContainer(String time, float accMX, float accMY, float accMZ, float gyroMX, float gyroMY, float gyroMZ, float accWX, float accWY, float accWZ, float gyroWX, float gyroWY, float gyroWZ, long lId) {
+        this.time = time;
+        this.accMX = accMX;
+        this.accMY = accMY;
+        this.accMZ = accMZ;
+        this.gyroMX = gyroMX;
+        this.gyroMY = gyroMY;
+        this.gyroMZ = gyroMZ;
+        this.accWX = accWX;
+        this.accWY = accWY;
+        this.accWZ = accWZ;
+        this.gyroWX = gyroWX;
+        this.gyroWY = gyroWY;
+        this.gyroWZ = gyroWZ;
+        this.lId = lId;
+    }
+
     public String getTime() {
         return time;
     }

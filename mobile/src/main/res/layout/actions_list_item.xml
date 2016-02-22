@@ -6,7 +6,7 @@
               android:padding="2dp">
 
     <TextView
-        android:id="@+id/actionTitle"
+        android:id="@+id/action_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="8dp"
@@ -14,7 +14,7 @@
         android:text="aaa"
         android:textSize="25sp"/>
     <TextView
-        android:id="@+id/actionlId"
+        android:id="@+id/action_lId"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="8dp"

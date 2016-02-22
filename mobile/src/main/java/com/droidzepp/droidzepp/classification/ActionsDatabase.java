@@ -6,7 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.droidzepp.droidzepp.RecordedActionListElement;
+import com.droidzepp.droidzepp.uiclasses.RecordedActionListElement;
 
 import java.util.ArrayList;
 
@@ -87,6 +87,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
         // Inserting Row
         long rowNumber = db.insert(TABLE_ACTIONS, null, values);
+        values.clear();
         db.close(); // Closing database connection
         return rowNumber;
     }
@@ -101,6 +102,15 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         long recent = db.insert(TABLE_LABELS, null, values);
         db.close(); // Closing database connection
         return recent;
+    }
+
+    public long updateLabel(long rowId, String newLabel){
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(KEY_NAME, newLabel);
+        int affectedRows = db.update(TABLE_LABELS, values, KEY_ID + "=" + rowId, null);
+        db.close();
+        return affectedRows;
     }
 
     public double[][][] getDataSet() {
@@ -145,7 +155,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
     }
 
     public ArrayList<RecordedActionListElement> getRecordedActions() {
-        String selectQuery = "SELECT * FROM " + TABLE_LABELS;
+        String selectQuery = "SELECT * FROM " + TABLE_LABELS + " GROUP BY " + KEY_NAME;
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery(selectQuery, null);
 
