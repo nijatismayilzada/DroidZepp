@@ -11,11 +11,11 @@ import com.droidzepp.droidzepp.R;
 
 import java.util.ArrayList;
 
-public class ActionArrayAdapter extends ArrayAdapter<RecordedActionListElement> {
+public class ActionsListViewArrayAdapter extends ArrayAdapter<RecordedActionListElement> {
     private Context mContext;
     private ArrayList<RecordedActionListElement> actionList;
 
-    public ActionArrayAdapter(Context context, int textViewResourceID, ArrayList<RecordedActionListElement> actionList){
+    public ActionsListViewArrayAdapter(Context context, int textViewResourceID, ArrayList<RecordedActionListElement> actionList){
         super(context, textViewResourceID, actionList);
         this.mContext = context;
         this.actionList = new ArrayList<>();

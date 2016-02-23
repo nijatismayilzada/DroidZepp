@@ -8,7 +8,9 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.os.StrictMode;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.droidzepp.droidzepp.datacollection.AccelerometerNewDataHandler;
 import com.droidzepp.droidzepp.datacollection.GyroscopeNewDataHandler;
@@ -23,6 +25,13 @@ import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
+
+import org.ksoap2.SoapEnvelope;
+import org.ksoap2.serialization.PropertyInfo;
+import org.ksoap2.serialization.SoapObject;
+import org.ksoap2.serialization.SoapPrimitive;
+import org.ksoap2.serialization.SoapSerializationEnvelope;
+import org.ksoap2.transport.HttpTransportSE;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +62,8 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     private static String SOAP_ACTION = "http://tempuri.org/";
     private static String METHOD_NAME = "Classify";
 
+    private static String LOGTAG = "ClassifyService";
+
 
 //    int recheckingInterval = 1000;
 
@@ -79,7 +90,6 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 //    };
     @Override
     public IBinder onBind(Intent intent) {
-        Log.d("droidzepp.mob", "Binding...");
         return messageReceiver.getBinder();
     }
 
@@ -126,7 +136,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     }
 
     public long extractfeatures(ArrayList<DataMap> wData){
-        Log.d("droidzepp.mob.data", "New data is received and it will be combined with existing data");
+        Log.d(LOGTAG, "New data is received and it will be combined with existing data");
         AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
         ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
@@ -136,7 +146,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         FeatureContainer extractedFeatures = new FeatureContainer();
 
         long actionLabelID = actionsDB.addNewLabel("unknown action");
-        Log.d("droidzepp.mob.data", "Most recent action label: " + actionLabelID);
+        Log.d(LOGTAG, "Most recent action label: " + actionLabelID);
         int sizeOfDataSetToBeAdded = Math.min(Math.min(mDataAcc.size(),mDataGyro.size()), wData.size());
 
 
@@ -157,18 +167,16 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             extractedFeatures.setlId(actionLabelID);
             actionsDB.addFeatures(extractedFeatures);
         }
-        sendMessageToMainActivity(MSG_COMBINING_DONE);
-        actionLabelID = actionLabelID + 11;
+        actionLabelID += 11;
         sendMessageToMainActivity((int) actionLabelID);
+        sendMessageToMainActivity(MSG_COMBINING_DONE);
         return actionLabelID;
     }
-//    void classify() {
-//        AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
-//        GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
-//        ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
-//        double[][][] dataset = actionsDB.getDataSet();
-//        int[] labels = actionsDB.getLabels();
-//
+    void classify(int lIdToTest) {
+        ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
+        double[][][] dataset = actionsDB.getDataSet();
+        int[] labels = actionsDB.getLabels();
+
 //        List<XYZwithTime> accDataList = dbAccNewData.getAllData();
 //        List<XYZ> gyroDataList = dbGyroNewData.getAllData();
 //        double[][] testData = new double[145][6];
@@ -182,69 +190,69 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 //            testData[i][4]=(double)gyroDataList.get(i).getY();
 //            testData[i][5]=(double)gyroDataList.get(i).getZ();
 //        }
-//
-//        String resTxt = null;
-//        // Create request
-//        SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
-//
-//
-//        PropertyInfo pi = new PropertyInfo();
-//        pi.setName("dataset");
-//        pi.setValue(dataset);
-//        pi.type = double[][][].class;
-//        request.addProperty(pi);
-//
-//        PropertyInfo pi2 = new PropertyInfo();
-//        pi2.setName("labels");
-//        pi2.setValue(labels);
-//        pi2.type = int[].class;
-//        request.addProperty(pi2);
-//
-//        PropertyInfo pi3 = new PropertyInfo();
-//        pi3.setName("testData");
-//        pi3.setValue(testData);
-//        pi3.type = double[][].class;
-//        request.addProperty(pi3);
-//
-//        // Create envelope
-//        SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(
-//                SoapEnvelope.VER11);
-//
-//        envelope.dotNet = true;
-//        envelope.setOutputSoapObject(request);
-//
-//        new MarshalDouble3D().register(envelope);
-//
-//        new MarshalInt1D().register(envelope);
-//
-//        new MarshalDouble2D().register(envelope);
-//
-//        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-//
-//        StrictMode.setThreadPolicy(policy);
-//        // Create HTTP call object
-//        HttpTransportSE androidHttpTransport = new HttpTransportSE(URLS);
-//
-//        androidHttpTransport.debug = true;
-//        try {
-//            // Invoke web service
-//            androidHttpTransport.call(SOAP_ACTION+METHOD_NAME, envelope);
-//            // Get the response
-//            SoapPrimitive response = (SoapPrimitive) envelope.getResponse();
-//            // Assign it to resTxt variable static variable
-//            resTxt = response.toString();
-//
-//        } catch (Exception e) {
-//            //Print error
-//            e.printStackTrace();
-//            //Assign error message to resTxt
-//            resTxt = "Error occured";
-//        }
-//        //Return resTxt to calling object
-//        Log.d("Result: ", resTxt);
-//        Toast.makeText(this, resTxt, Toast.LENGTH_LONG).show();
-//
-//    }
+
+        String resTxt = null;
+        // Create request
+        SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
+
+
+        PropertyInfo pi = new PropertyInfo();
+        pi.setName("dataset");
+        pi.setValue(dataset);
+        pi.type = double[][][].class;
+        request.addProperty(pi);
+
+        PropertyInfo pi2 = new PropertyInfo();
+        pi2.setName("labels");
+        pi2.setValue(labels);
+        pi2.type = int[].class;
+        request.addProperty(pi2);
+
+        PropertyInfo pi3 = new PropertyInfo();
+        pi3.setName("testData");
+ //       pi3.setValue(testData);
+        pi3.type = double[][].class;
+        request.addProperty(pi3);
+
+        // Create envelope
+        SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(
+                SoapEnvelope.VER11);
+
+        envelope.dotNet = true;
+        envelope.setOutputSoapObject(request);
+
+        new MarshalDouble3D().register(envelope);
+
+        new MarshalInt1D().register(envelope);
+
+        new MarshalDouble2D().register(envelope);
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+
+        StrictMode.setThreadPolicy(policy);
+        // Create HTTP call object
+        HttpTransportSE androidHttpTransport = new HttpTransportSE(URLS);
+
+        androidHttpTransport.debug = true;
+        try {
+            // Invoke web service
+            androidHttpTransport.call(SOAP_ACTION+METHOD_NAME, envelope);
+            // Get the response
+            SoapPrimitive response = (SoapPrimitive) envelope.getResponse();
+            // Assign it to resTxt variable static variable
+            resTxt = response.toString();
+
+        } catch (Exception e) {
+            //Print error
+            e.printStackTrace();
+            //Assign error message to resTxt
+            resTxt = "Error occured";
+        }
+        //Return resTxt to calling object
+        Log.d("Result: ", resTxt);
+        Toast.makeText(this, resTxt, Toast.LENGTH_LONG).show();
+
+    }
 
     @Override
     public void onConnected(Bundle bundle) {

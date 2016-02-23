@@ -24,7 +24,7 @@ import android.widget.ListView;
 import com.droidzepp.droidzepp.classification.ActionsDatabase;
 import com.droidzepp.droidzepp.classification.ClassifyService;
 import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
-import com.droidzepp.droidzepp.uiclasses.ActionArrayAdapter;
+import com.droidzepp.droidzepp.uiclasses.ActionsListViewArrayAdapter;
 import com.droidzepp.droidzepp.uiclasses.ClassificationDialogFragment;
 import com.droidzepp.droidzepp.uiclasses.ConfirmationDialogFragment;
 
@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     ProgressDialog progress;
     DialogFragment confirmation;
     DialogFragment classification;
-    ActionArrayAdapter actionsListAdapter;
+    ActionsListViewArrayAdapter actionsListAdapter;
 
     // Messengers between back-end services and front-end
     final Messenger messageReceiver = new Messenger(new IncomingHandler());
@@ -111,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         });
         actionsDatabase = new ActionsDatabase(this);
         actionsListView = (ListView) findViewById(R.id.actions_listview);
-        actionsListAdapter = new ActionArrayAdapter(this, R.layout.actions_list_item, actionsDatabase.getRecordedActions());
+        actionsListAdapter = new ActionsListViewArrayAdapter(this, R.layout.actions_list_item, actionsDatabase.getRecordedActions());
         actionsListView.setAdapter(actionsListAdapter);
 
     }
@@ -178,8 +178,14 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     }
 
     @Override
+    public void onDialogNeutralClick(DialogFragment dialog) {
+        Log.d(LOGTAG, "Neutral clicked");
+    }
+
+    @Override
     public void onDialogNegativeClick(DialogFragment dialog) {
         Log.d(LOGTAG, "Cancel clicked");
+        actionsDatabase.deleteRecordedAction(recentRecordedActionID);
     }
 
     class IncomingHandler extends Handler {
@@ -187,21 +193,22 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         public void handleMessage(Message msg) {
             if (msg.what > 10) {
                 recentRecordedActionID = msg.what - 11;
-            }
-            switch (msg.what) {
-                case MSG_RECORDING_DONE:
-                    Log.d(LOGTAG, "Recording done");
-                    progress.dismiss();
-                    progress = ProgressDialog.show(MainActivity.this, "DroidZepp", "Receiving wearable device data...", true, false);
-                    break;
-                case MSG_COMBINING_DONE:
-                    Log.d(LOGTAG, "Receiving and combining of wearable data is done");
-                    progress.dismiss();
-                    classification = new ClassificationDialogFragment(getApplicationContext());
-                    classification.show(getFragmentManager(), "Classification");
-                    break;
-                default:
-                    super.handleMessage(msg);
+            } else {
+                switch (msg.what) {
+                    case MSG_RECORDING_DONE:
+                        Log.d(LOGTAG, "Recording done");
+                        progress.dismiss();
+                        progress = ProgressDialog.show(MainActivity.this, "DroidZepp", "Receiving wearable device data...", true, false);
+                        break;
+                    case MSG_COMBINING_DONE:
+                        Log.d(LOGTAG, "Receiving and combining of wearable data is done");
+                        progress.dismiss();
+                        classification = new ClassificationDialogFragment(getApplicationContext());
+                        classification.show(getFragmentManager(), "Classification");
+                        break;
+                    default:
+                        super.handleMessage(msg);
+                }
             }
         }
     }

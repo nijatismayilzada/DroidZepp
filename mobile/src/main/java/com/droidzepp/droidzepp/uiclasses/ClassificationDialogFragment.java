@@ -26,6 +26,7 @@ public class ClassificationDialogFragment extends DialogFragment {
     public interface ClassificationDialogListener {
         void onDialogPositiveClick(DialogFragment dialog, String addedLabel);
         void onDialogNegativeClick(DialogFragment dialog);
+        void onDialogNeutralClick(DialogFragment dialog);
     }
 
     ClassificationDialogListener mListener;
@@ -48,6 +49,11 @@ public class ClassificationDialogFragment extends DialogFragment {
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         mListener.onDialogNegativeClick(ClassificationDialogFragment.this);
+                    }
+                })
+                .setNeutralButton(R.string.classify_the_action, new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int id){
+                        mListener.onDialogNeutralClick(ClassificationDialogFragment.this);
                     }
                 });
         // Create the AlertDialog object and return it

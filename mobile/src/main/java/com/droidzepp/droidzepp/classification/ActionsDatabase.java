@@ -10,9 +10,6 @@ import com.droidzepp.droidzepp.uiclasses.RecordedActionListElement;
 
 import java.util.ArrayList;
 
-/**
- * Created by nijat on 28/10/15.
- */
 public class ActionsDatabase extends SQLiteOpenHelper {
 
     private static final int DATABASE_VERSION = 1;
@@ -36,6 +33,9 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     private static final String TABLE_LABELS = "labels";
     private static final String KEY_NAME = "actionName";
+    private static final String KEY_LABEL = "label";
+
+    private static final String LOGTAG = "ActionsDatabase";
 
     public ActionsDatabase(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -44,7 +44,8 @@ public class ActionsDatabase extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         String CREATE_TABLE = "CREATE TABLE " + TABLE_LABELS + "("
-                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_NAME + " TEXT" + ")";
+                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_NAME + " TEXT,"
+                + KEY_LABEL + " INTEGER" + ")";
         db.execSQL(CREATE_TABLE);
 
         CREATE_TABLE = "CREATE TABLE " + TABLE_ACTIONS + "("
@@ -92,31 +93,56 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         return rowNumber;
     }
 
-    public long addNewLabel(String newLabel) {
+    public long addNewLabel(String newStringLabel) {
         SQLiteDatabase db = this.getWritableDatabase();
+        String queryMaxLabel = "SELECT MAX(" + KEY_LABEL + ") FROM " + TABLE_LABELS;
+        long recent;
+        int newIntLabel;
+
+        Cursor cursorMax = db.rawQuery(queryMaxLabel, null);
+        if (cursorMax.getCount() == 0) {
+            newIntLabel = 1;
+        } else {
+            cursorMax.moveToFirst();
+            newIntLabel = cursorMax.getInt(0) + 1;
+        }
 
         ContentValues values = new ContentValues();
-        values.put(KEY_NAME, newLabel);
+        values.put(KEY_NAME, newStringLabel);
+        values.put(KEY_LABEL, newIntLabel);
+        recent = db.insert(TABLE_LABELS, null, values);
 
-        // Inserting Row
-        long recent = db.insert(TABLE_LABELS, null, values);
-        db.close(); // Closing database connection
+        db.close();
         return recent;
     }
 
-    public long updateLabel(long rowId, String newLabel){
+    public long updateLabel(long rowId, String newStringLabel) {
         SQLiteDatabase db = this.getWritableDatabase();
+        String queryMaxLabel = "SELECT MAX(" + KEY_LABEL + ") FROM " + TABLE_LABELS;
+        String querySameLabel = "SELECT " + KEY_LABEL + " FROM " + TABLE_LABELS + " WHERE " + KEY_NAME + " = '" + newStringLabel + "'";
+        int newIntLabel;
+
+        Cursor cursorMax = db.rawQuery(queryMaxLabel, null);
+        Cursor cursorSame = db.rawQuery(querySameLabel, null);
+        if (cursorSame.getCount() == 0) {
+            cursorMax.moveToFirst();
+            newIntLabel = cursorMax.getInt(0);
+        } else {
+            cursorSame.moveToFirst();
+            newIntLabel = cursorSame.getInt(0);
+        }
+
         ContentValues values = new ContentValues();
-        values.put(KEY_NAME, newLabel);
+        values.put(KEY_NAME, newStringLabel);
+        values.put(KEY_LABEL, newIntLabel);
         int affectedRows = db.update(TABLE_LABELS, values, KEY_ID + "=" + rowId, null);
         db.close();
         return affectedRows;
     }
 
     public double[][][] getDataSet() {
-
+        SQLiteDatabase db = this.getReadableDatabase();
         String selectQuery = "SELECT * FROM " + TABLE_ACTIONS;
-        SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor1 = db.rawQuery(selectQuery, null);
 
         double[][][] dataSet = new double[12][145][6];
@@ -146,17 +172,45 @@ public class ActionsDatabase extends SQLiteOpenHelper {
     }
 
     public int[] getLabels() {
-        int[] labels = {1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 2, 2};
+        SQLiteDatabase db = this.getReadableDatabase();
+        String selectQuery = "SELECT " + KEY_LABEL + " FROM " + TABLE_LABELS;
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        int[] labels = new int[cursor.getCount()];
+        int count = 0;
+        if(cursor.moveToFirst()){
+            do{
+                labels[count] = cursor.getInt(cursor.getColumnIndex(KEY_LABEL));
+                count++;
+            }while (cursor.moveToNext());
+        }
+        db.close();
         return labels;
     }
 
-    public static String getForeignKey() {
+    public int getMinCountOfDistinctLabels() {
+        String selectQuery = "SELECT MIN(myCount) FROM (SELECT COUNT(" + KEY_LID + ") myCount FROM " + TABLE_ACTIONS + " GROUP BY " + KEY_LID + ")";
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        cursor.moveToFirst();
+        db.close();
+        return cursor.getInt(0);
+    }
+
+    public void deleteRecordedAction(int lId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_ACTIONS, KEY_LID + " = " + lId, null);
+        db.delete(TABLE_LABELS, KEY_ID + " = " + lId, null);
+        db.close();
+    }
+
+    public String getForeignKey() {
         return TABLE_LABELS + "(" + KEY_ID + ")";
     }
 
     public ArrayList<RecordedActionListElement> getRecordedActions() {
         String selectQuery = "SELECT * FROM " + TABLE_LABELS + " GROUP BY " + KEY_NAME;
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(selectQuery, null);
 
         ArrayList<RecordedActionListElement> recordedActions = new ArrayList<>();
