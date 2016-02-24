@@ -18,9 +18,11 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
     private static final String KEY_X = "x";
     private static final String KEY_Y = "y";
     private static final String KEY_Z = "z";
+    SQLiteDatabase db;
 
     public GyroscopeNewDataHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        db = this.getWritableDatabase();
     }
 
     @Override
@@ -39,7 +41,7 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
     }
 
     public long addXYZ(XYZ data) {
-        SQLiteDatabase db = this.getWritableDatabase();
+        //SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
         values.put(KEY_X, data.getX());
@@ -48,7 +50,7 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
 
         // Inserting Row
         long insertedRow = db.insert(TABLE_GYROSCOPE, null, values);
-        db.close(); // Closing database connection
+        //db.close(); // Closing database connection
         return insertedRow;
     }
 
@@ -56,7 +58,7 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
         List<XYZ> dataList = new ArrayList<XYZ>();
         String selectQuery = "SELECT  * FROM " + TABLE_GYROSCOPE;
 
-        SQLiteDatabase db = this.getWritableDatabase();
+        //SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery(selectQuery, null);
 
         if (cursor.moveToFirst()) {
@@ -69,13 +71,20 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
             } while (cursor.moveToNext());
         }
 
-        db.close();
+        //db.close();
         return dataList;
     }
 
     public void clearTable(){
-        SQLiteDatabase db = this.getWritableDatabase();
+        //SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM xyzRecords;");
+        //db.close();
+    }
+
+    public void closeDB(){
         db.close();
+    }
+    public void openDB(){
+        db = this.getWritableDatabase();
     }
 }

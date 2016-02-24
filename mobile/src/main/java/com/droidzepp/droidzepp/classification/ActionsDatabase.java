@@ -37,6 +37,8 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     private static final String LOGTAG = "ActionsDatabase";
 
+    private SQLiteDatabase db;
+
     public ActionsDatabase(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -68,7 +70,6 @@ public class ActionsDatabase extends SQLiteOpenHelper {
     }
 
     public long addFeatures(FeatureContainer data) {
-        SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
         values.put(KEY_TIME, data.getTime());
@@ -89,12 +90,10 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         // Inserting Row
         long rowNumber = db.insert(TABLE_ACTIONS, null, values);
         values.clear();
-        db.close(); // Closing database connection
         return rowNumber;
     }
 
     public long addNewLabel(String newStringLabel) {
-        SQLiteDatabase db = this.getWritableDatabase();
         String queryMaxLabel = "SELECT MAX(" + KEY_LABEL + ") FROM " + TABLE_LABELS;
         long recent;
         int newIntLabel;
@@ -112,12 +111,10 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         values.put(KEY_LABEL, newIntLabel);
         recent = db.insert(TABLE_LABELS, null, values);
 
-        db.close();
         return recent;
     }
 
     public long updateLabel(long rowId, String newStringLabel) {
-        SQLiteDatabase db = this.getWritableDatabase();
         String queryMaxLabel = "SELECT MAX(" + KEY_LABEL + ") FROM " + TABLE_LABELS;
         String querySameLabel = "SELECT " + KEY_LABEL + " FROM " + TABLE_LABELS + " WHERE " + KEY_NAME + " = '" + newStringLabel + "'";
         int newIntLabel;
@@ -136,44 +133,77 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         values.put(KEY_NAME, newStringLabel);
         values.put(KEY_LABEL, newIntLabel);
         int affectedRows = db.update(TABLE_LABELS, values, KEY_ID + "=" + rowId, null);
-        db.close();
         return affectedRows;
     }
 
-    public double[][][] getDataSet() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        String selectQuery = "SELECT * FROM " + TABLE_ACTIONS;
-        Cursor cursor1 = db.rawQuery(selectQuery, null);
+    public double[][][] getDataSet(int forThisTestData) {
+        String selectQuery = "SELECT * FROM " + TABLE_ACTIONS + " EXCEPT SELECT * FROM " + TABLE_ACTIONS + " WHERE " + KEY_LID + " = " + forThisTestData;
+        Cursor cursor = db.rawQuery(selectQuery, null);
 
-        double[][][] dataSet = new double[12][145][6];
+        int numFeatures = getMinCountOfDistinctLabels();
+        int numLabels = getLabels(forThisTestData).length;
+        double[][][] dataSet = new double[numLabels][numFeatures][12];
 
         int counter = 0;
         int previous = 0;
-        if (cursor1.moveToFirst()) {
+        if (cursor.moveToFirst()) {
             do {
-                int klid = cursor1.getInt(cursor1.getColumnIndex(KEY_LID)) - 1;
-                if (klid > previous)
+                int lId = cursor.getInt(cursor.getColumnIndex(KEY_LID)) - 1;
+                if (lId != previous)
                     counter = 0;
-                if (counter < 145 && klid < 12) {
-                    dataSet[klid][counter][0] = cursor1.getDouble(0);
-                    dataSet[klid][counter][1] = cursor1.getDouble(1);
-                    dataSet[klid][counter][2] = cursor1.getDouble(2);
-                    dataSet[klid][counter][3] = cursor1.getDouble(3);
-                    dataSet[klid][counter][4] = cursor1.getDouble(4);
-                    dataSet[klid][counter][5] = cursor1.getDouble(5);
-                    previous = klid;
+                if (counter < numFeatures) {
+                    dataSet[lId][counter][0] = cursor.getDouble(cursor.getColumnIndex(KEY_1));
+                    dataSet[lId][counter][1] = cursor.getDouble(cursor.getColumnIndex(KEY_2));
+                    dataSet[lId][counter][2] = cursor.getDouble(cursor.getColumnIndex(KEY_3));
+                    dataSet[lId][counter][3] = cursor.getDouble(cursor.getColumnIndex(KEY_4));
+                    dataSet[lId][counter][4] = cursor.getDouble(cursor.getColumnIndex(KEY_5));
+                    dataSet[lId][counter][5] = cursor.getDouble(cursor.getColumnIndex(KEY_6));
+                    dataSet[lId][counter][6] = cursor.getDouble(cursor.getColumnIndex(KEY_7));
+                    dataSet[lId][counter][7] = cursor.getDouble(cursor.getColumnIndex(KEY_8));
+                    dataSet[lId][counter][8] = cursor.getDouble(cursor.getColumnIndex(KEY_9));
+                    dataSet[lId][counter][9] = cursor.getDouble(cursor.getColumnIndex(KEY_10));
+                    dataSet[lId][counter][10] = cursor.getDouble(cursor.getColumnIndex(KEY_11));
+                    dataSet[lId][counter][11] = cursor.getDouble(cursor.getColumnIndex(KEY_12));
+                    previous = lId;
                 }
                 counter++;
-            } while (cursor1.moveToNext());
+            } while (cursor.moveToNext());
         }
 
-        db.close();
         return dataSet;
     }
 
-    public int[] getLabels() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        String selectQuery = "SELECT " + KEY_LABEL + " FROM " + TABLE_LABELS;
+    public double [][] getTestData(int forThisTestData){
+        String selectQuery = "SELECT * FROM " + TABLE_ACTIONS + " WHERE " + KEY_LID + " = " + forThisTestData;
+        Cursor cursor = db.rawQuery(selectQuery, null);
+
+        int numFeatures = cursor.getCount();
+
+        double[][] testData = new double[numFeatures][12];
+        int counter = 0;
+
+        if(cursor.moveToFirst()){
+            do {
+                testData[counter][0] = cursor.getDouble(cursor.getColumnIndex(KEY_1));
+                testData[counter][1] = cursor.getDouble(cursor.getColumnIndex(KEY_2));
+                testData[counter][2] = cursor.getDouble(cursor.getColumnIndex(KEY_3));
+                testData[counter][3] = cursor.getDouble(cursor.getColumnIndex(KEY_4));
+                testData[counter][4] = cursor.getDouble(cursor.getColumnIndex(KEY_5));
+                testData[counter][5] = cursor.getDouble(cursor.getColumnIndex(KEY_6));
+                testData[counter][6] = cursor.getDouble(cursor.getColumnIndex(KEY_7));
+                testData[counter][7] = cursor.getDouble(cursor.getColumnIndex(KEY_8));
+                testData[counter][8] = cursor.getDouble(cursor.getColumnIndex(KEY_9));
+                testData[counter][9] = cursor.getDouble(cursor.getColumnIndex(KEY_10));
+                testData[counter][10] = cursor.getDouble(cursor.getColumnIndex(KEY_11));
+                testData[counter][11] = cursor.getDouble(cursor.getColumnIndex(KEY_12));
+                counter++;
+            }while (cursor.moveToNext());
+        }
+        return testData;
+    }
+
+    public int[] getLabels(int forThisTestData) {
+        String selectQuery = "SELECT * FROM " + TABLE_LABELS + " EXCEPT SELECT * FROM " + TABLE_LABELS + " WHERE " + KEY_ID + " = " + forThisTestData;
         Cursor cursor = db.rawQuery(selectQuery, null);
         int[] labels = new int[cursor.getCount()];
         int count = 0;
@@ -183,25 +213,34 @@ public class ActionsDatabase extends SQLiteOpenHelper {
                 count++;
             }while (cursor.moveToNext());
         }
-        db.close();
         return labels;
+    }
+
+    public String[] getClasses(int forThisTestData) {
+        String selectQuery = "SELECT DISTINCT(" + KEY_LABEL + ") FROM " + TABLE_LABELS + " EXCEPT SELECT DISTINCT(" + KEY_LABEL + ") FROM " + TABLE_LABELS + " WHERE " + KEY_ID + " = " + forThisTestData;
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        String[] classes = new String[cursor.getCount()];
+        int count = 0;
+        if(cursor.moveToFirst()){
+            do{
+                classes[count] = String.valueOf(cursor.getInt(0));
+                count++;
+            }while (cursor.moveToNext());
+        }
+        return classes;
     }
 
     public int getMinCountOfDistinctLabels() {
         String selectQuery = "SELECT MIN(myCount) FROM (SELECT COUNT(" + KEY_LID + ") myCount FROM " + TABLE_ACTIONS + " GROUP BY " + KEY_LID + ")";
-        SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor cursor = db.rawQuery(selectQuery, null);
         cursor.moveToFirst();
-        db.close();
         return cursor.getInt(0);
     }
 
     public void deleteRecordedAction(int lId) {
-        SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_ACTIONS, KEY_LID + " = " + lId, null);
         db.delete(TABLE_LABELS, KEY_ID + " = " + lId, null);
-        db.close();
     }
 
     public String getForeignKey() {
@@ -210,7 +249,6 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     public ArrayList<RecordedActionListElement> getRecordedActions() {
         String selectQuery = "SELECT * FROM " + TABLE_LABELS + " GROUP BY " + KEY_NAME;
-        SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(selectQuery, null);
 
         ArrayList<RecordedActionListElement> recordedActions = new ArrayList<>();
@@ -219,7 +257,16 @@ public class ActionsDatabase extends SQLiteOpenHelper {
                 recordedActions.add(new RecordedActionListElement(cursor.getString(cursor.getColumnIndex(KEY_NAME)), cursor.getLong(cursor.getColumnIndex(KEY_ID))));
             } while (cursor.moveToNext());
         }
-        db.close();
         return recordedActions;
     }
+
+    public void openDB(){
+        db = this.getWritableDatabase();
+    }
+
+    public void closeDB(){
+        db.close();
+    }
+
+
 }

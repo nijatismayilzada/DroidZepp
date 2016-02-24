@@ -4,7 +4,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,8 +27,8 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
     private SensorManager mSensorManager;
-    private SensorEventListener mAccEventListener;
-    private SensorEventListener mGyroEventListener;
+    private AccelerometerListener mAccEventListener;
+    private GyroscopeListener mGyroEventListener;
     private Handler hndlStartRecording;
     private Handler hndlRecording;
     private Handler hndlEndRecording;
@@ -50,8 +49,14 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
         @Override
         public void run() {
             Log.d("p", "Recording started");
+            dbNewAccData.openDB();
             dbNewAccData.clearTable();
+            dbNewAccData.close();
+            dbNewGyroData.openDB();
             dbNewGyroData.clearTable();
+            dbNewGyroData.close();
+            mAccEventListener.dbNewData.openDB();
+            mGyroEventListener.dbNewData.openDB();
             mSensorManager.registerListener(mAccEventListener, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
             mSensorManager.registerListener(mGyroEventListener, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
             hndlRecording.post(prcsRecording);
@@ -75,6 +80,8 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
             hndlRecording.removeCallbacks(prcsRecording);
             mSensorManager.unregisterListener(mAccEventListener, mAccelerometer);
             mSensorManager.unregisterListener(mGyroEventListener, mGyroscope);
+            mAccEventListener.dbNewData.close();
+            mGyroEventListener.dbNewData.close();
             hndlEndRecording.removeCallbacks(prcsEndRecording);
             newDataRecorded = true;
         }

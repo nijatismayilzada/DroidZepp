@@ -135,6 +135,7 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
 
                 putDataMapReq.getDataMap().putDataMapArrayList(DATA_KEY, dataMapList);
                 PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
+                putDataReq.setUrgent();
                 if (validateConnection()) {
                     Log.d("droidzepp.wear", "connection is okay");
                     Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {

@@ -44,7 +44,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
 
-//    private Handler hndlCheckForStart;
+    //    private Handler hndlCheckForStart;
 //    private Handler hndlClassify;
     private static final String DATA_KEY = "droidzepp.wear.data";
     private GoogleApiClient mGoogleApiClient;
@@ -56,8 +56,9 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     public static final int MSG_UNREGISTER_CLIENT = 2;
     public static final int MSG_COMBINING_DONE = 5;
     public static int MSG_LABEL_ID = 10;
+    public static int recentRecordedActionID;
 
-    private static String URLS = "http://asdfnijat.azurewebsites.net/Service.asmx";
+    private static String URLS = "http://droidzepp.azurewebsites.net/Service.asmx";
     private static String NAMESPACE = "http://tempuri.org/";
     private static String SOAP_ACTION = "http://tempuri.org/";
     private static String METHOD_NAME = "Classify";
@@ -67,7 +68,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 
 //    int recheckingInterval = 1000;
 
-//    private final Runnable prcsCheckForStart = new Runnable() {
+    //    private final Runnable prcsCheckForStart = new Runnable() {
 //        @Override
 //        public void run() {
 //            if (SensorHandlerService.newDataRecorded){
@@ -84,7 +85,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 //    private final Runnable prcsClassify = new Runnable() {
 //        @Override
 //        public void run() {
-//            //extractfeatures();
+//            //extractFeatures();
 //            //classify();
 //        }
 //    };
@@ -109,37 +110,43 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 
     @Override
     public void onDestroy() {
- //       hndlCheckForStart.removeCallbacks(prcsCheckForStart);
+        //       hndlCheckForStart.removeCallbacks(prcsCheckForStart);
         super.onDestroy();
     }
 
     @Override
-    public void onLowMemory(){
-  //      hndlCheckForStart.removeCallbacks(prcsCheckForStart);
+    public void onLowMemory() {
+        //      hndlCheckForStart.removeCallbacks(prcsCheckForStart);
         super.onLowMemory();
     }
 
     class IncomingHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MSG_REGISTER_CLIENT:
-                    messageSender.add(msg.replyTo);
-                    break;
-                case MSG_UNREGISTER_CLIENT:
-                    messageSender.remove(msg.replyTo);
-                    break;
-                default:
-                    super.handleMessage(msg);
+            if (msg.what > 10) {
+                recentRecordedActionID = msg.what - 11;
+                classify(recentRecordedActionID);
+            } else {
+                switch (msg.what) {
+                    case MSG_REGISTER_CLIENT:
+                        messageSender.add(msg.replyTo);
+                        break;
+                    case MSG_UNREGISTER_CLIENT:
+                        messageSender.remove(msg.replyTo);
+                        break;
+                    default:
+                        super.handleMessage(msg);
+                }
             }
         }
     }
 
-    public long extractfeatures(ArrayList<DataMap> wData){
+    public long extractFeatures(ArrayList<DataMap> wData) {
         Log.d(LOGTAG, "New data is received and it will be combined with existing data");
         AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
         ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
+        actionsDB.openDB();
 
         List<XYZwithTime> mDataAcc = dbAccNewData.getAllData();
         List<XYZ> mDataGyro = dbGyroNewData.getAllData();
@@ -147,10 +154,10 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 
         long actionLabelID = actionsDB.addNewLabel("unknown action");
         Log.d(LOGTAG, "Most recent action label: " + actionLabelID);
-        int sizeOfDataSetToBeAdded = Math.min(Math.min(mDataAcc.size(),mDataGyro.size()), wData.size());
+        int sizeOfDataSetToBeAdded = Math.min(Math.min(mDataAcc.size(), mDataGyro.size()), wData.size());
 
 
-        for (int i = 0; i < sizeOfDataSetToBeAdded; i++){
+        for (int i = 0; i < sizeOfDataSetToBeAdded; i++) {
             extractedFeatures.setTime(mDataAcc.get(i).getTime());
             extractedFeatures.setAccMX(mDataAcc.get(i).getX());
             extractedFeatures.setAccMY(mDataAcc.get(i).getY());
@@ -167,81 +174,72 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             extractedFeatures.setlId(actionLabelID);
             actionsDB.addFeatures(extractedFeatures);
         }
+        actionsDB.close();
         actionLabelID += 11;
         sendMessageToMainActivity((int) actionLabelID);
         sendMessageToMainActivity(MSG_COMBINING_DONE);
         return actionLabelID;
     }
+
     void classify(int lIdToTest) {
         ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
-        double[][][] dataset = actionsDB.getDataSet();
-        int[] labels = actionsDB.getLabels();
+        actionsDB.openDB();
+        double[][][] trainDataSet = actionsDB.getDataSet(lIdToTest);
+        int[] trainLabels = actionsDB.getLabels(lIdToTest);
+        double[][] testData = actionsDB.getTestData(lIdToTest);
+        String[] classes = actionsDB.getClasses(lIdToTest);
+        actionsDB.close();
 
-//        List<XYZwithTime> accDataList = dbAccNewData.getAllData();
-//        List<XYZ> gyroDataList = dbGyroNewData.getAllData();
-//        double[][] testData = new double[145][6];
-//
-//
-//        for (int i = 0; i < 145; i++){
-//            testData[i][0]=(double)accDataList.get(i).getX();
-//            testData[i][1]=(double)accDataList.get(i).getY();
-//            testData[i][2]=(double)accDataList.get(i).getZ();
-//            testData[i][3]=(double)gyroDataList.get(i).getX();
-//            testData[i][4]=(double)gyroDataList.get(i).getY();
-//            testData[i][5]=(double)gyroDataList.get(i).getZ();
-//        }
-
-        String resTxt = null;
+        String resTxt;
         // Create request
         SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
 
-
         PropertyInfo pi = new PropertyInfo();
-        pi.setName("dataset");
-        pi.setValue(dataset);
+        pi.setName("trainDataSet");
+        pi.setValue(trainDataSet);
         pi.type = double[][][].class;
         request.addProperty(pi);
 
         PropertyInfo pi2 = new PropertyInfo();
-        pi2.setName("labels");
-        pi2.setValue(labels);
+        pi2.setName("trainLabels");
+        pi2.setValue(trainLabels);
         pi2.type = int[].class;
         request.addProperty(pi2);
 
         PropertyInfo pi3 = new PropertyInfo();
         pi3.setName("testData");
- //       pi3.setValue(testData);
+        pi3.setValue(testData);
         pi3.type = double[][].class;
         request.addProperty(pi3);
 
-        // Create envelope
-        SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(
-                SoapEnvelope.VER11);
+        PropertyInfo pi4 = new PropertyInfo();
+        pi4.setName("classes");
+        pi4.setValue(classes);
+        pi4.type = String[].class;
+        request.addProperty(pi4);
 
+        // Create envelope
+        SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
         envelope.dotNet = true;
         envelope.setOutputSoapObject(request);
 
         new MarshalDouble3D().register(envelope);
-
         new MarshalInt1D().register(envelope);
-
         new MarshalDouble2D().register(envelope);
+        new MarshalString1D().register(envelope);
 
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-
         StrictMode.setThreadPolicy(policy);
         // Create HTTP call object
         HttpTransportSE androidHttpTransport = new HttpTransportSE(URLS);
-
         androidHttpTransport.debug = true;
         try {
             // Invoke web service
-            androidHttpTransport.call(SOAP_ACTION+METHOD_NAME, envelope);
+            androidHttpTransport.call(SOAP_ACTION + METHOD_NAME, envelope);
             // Get the response
             SoapPrimitive response = (SoapPrimitive) envelope.getResponse();
             // Assign it to resTxt variable static variable
             resTxt = response.toString();
-
         } catch (Exception e) {
             //Print error
             e.printStackTrace();
@@ -249,9 +247,8 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             resTxt = "Error occured";
         }
         //Return resTxt to calling object
-        Log.d("Result: ", resTxt);
+        Log.d(LOGTAG, "Result of classifier: " + resTxt);
         Toast.makeText(this, resTxt, Toast.LENGTH_LONG).show();
-
     }
 
     @Override
@@ -273,7 +270,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
                 DataItem item = event.getDataItem();
                 if (item.getUri().getPath().compareTo("/wearData") == 0) {
                     Log.d("droidzepp.mobile.data", "New data came from wear");
-                    extractfeatures(DataMapItem.fromDataItem(item).getDataMap().getDataMapArrayList(DATA_KEY));
+                    extractFeatures(DataMapItem.fromDataItem(item).getDataMap().getDataMapArrayList(DATA_KEY));
                 }
             }
         }
@@ -284,13 +281,12 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         Log.d("droidzepp.mobile", "Connection failed");
     }
 
-    private void sendMessageToMainActivity(int message){
-        for (int i=messageSender.size()-1; i>=0; i--) {
+    private void sendMessageToMainActivity(int message) {
+        for (int i = messageSender.size() - 1; i >= 0; i--) {
             try {
                 // Send data as an Integer
                 messageSender.get(i).send(Message.obtain(null, message));
-            }
-            catch (RemoteException e) {
+            } catch (RemoteException e) {
                 messageSender.remove(i);
             }
         }

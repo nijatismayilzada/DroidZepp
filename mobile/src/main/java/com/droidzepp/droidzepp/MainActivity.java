@@ -111,7 +111,9 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         });
         actionsDatabase = new ActionsDatabase(this);
         actionsListView = (ListView) findViewById(R.id.actions_listview);
+        actionsDatabase.openDB();
         actionsListAdapter = new ActionsListViewArrayAdapter(this, R.layout.actions_list_item, actionsDatabase.getRecordedActions());
+        actionsDatabase.close();
         actionsListView.setAdapter(actionsListAdapter);
 
     }
@@ -160,8 +162,10 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     @Override
     public void onDialogPositiveClick(DialogFragment dialog, String addedLabel) {
         Log.d(LOGTAG, "Save clicked");
+        actionsDatabase.openDB();
         actionsDatabase.updateLabel(recentRecordedActionID, addedLabel);
         actionsListAdapter.updateContent(actionsDatabase.getRecordedActions());
+        actionsDatabase.close();
         actionsListView.invalidateViews();
         actionsListView.setAdapter(actionsListAdapter);
     }
@@ -180,12 +184,20 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     @Override
     public void onDialogNeutralClick(DialogFragment dialog) {
         Log.d(LOGTAG, "Neutral clicked");
+        int testThisLabel = recentRecordedActionID + 11;
+        try {
+            classifyServiceMessageSender.send(Message.obtain(null, testThisLabel));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onDialogNegativeClick(DialogFragment dialog) {
         Log.d(LOGTAG, "Cancel clicked");
+        actionsDatabase.openDB();
         actionsDatabase.deleteRecordedAction(recentRecordedActionID);
+        actionsDatabase.close();
     }
 
     class IncomingHandler extends Handler {

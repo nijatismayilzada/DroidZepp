@@ -8,9 +8,12 @@ import android.util.Log;
 
 public class AccelerometerListener implements SensorEventListener {
     private Context mContext;
+    private XYZ data = new XYZ();
+    public AccelerometerNewDataHandler dbNewData;
 
     public AccelerometerListener(Context context){
         mContext = context;
+        dbNewData = new AccelerometerNewDataHandler(mContext);
     }
 
     @Override
@@ -21,9 +24,6 @@ public class AccelerometerListener implements SensorEventListener {
     @Override
     public final void onSensorChanged(SensorEvent event) {
         if (SensorHandlerService.flagForAcc) {
-
-            XYZ data = new XYZ();
-            AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
             // Many sensors return 3 values, one for each axis
             data.setX(event.values[0]);
             data.setY(event.values[1]);

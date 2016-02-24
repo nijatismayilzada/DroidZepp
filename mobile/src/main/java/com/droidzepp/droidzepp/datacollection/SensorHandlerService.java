@@ -73,6 +73,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
                     PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/prcsStartRecording");
                     putDataMapReq.getDataMap().putBoolean(START_KEY, false);
                     PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
+                    putDataReq.setUrgent();
                     if (validateConnection()) {
                         Log.d("droidzepp.mob", "connection is okay");
                         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
@@ -85,6 +86,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
 
                     putDataMapReq.getDataMap().putBoolean(START_KEY, true);
                     putDataReq = putDataMapReq.asPutDataRequest();
+                    putDataReq.setUrgent();
                     if (validateConnection()) {
                         Log.d("droidzepp.mob", "connection is okay");
                         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {

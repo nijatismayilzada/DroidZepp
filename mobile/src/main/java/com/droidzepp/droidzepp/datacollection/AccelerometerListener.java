@@ -10,9 +10,12 @@ import com.droidzepp.droidzepp.HelperFunctions;
 
 public class AccelerometerListener implements SensorEventListener {
     private Context mContext;
+    XYZwithTime data = new XYZwithTime();
+    AccelerometerNewDataHandler dbNewData;
 
     public AccelerometerListener(Context context){
         mContext = context;
+        dbNewData = new AccelerometerNewDataHandler(mContext);
     }
 
     @Override
@@ -23,9 +26,6 @@ public class AccelerometerListener implements SensorEventListener {
     @Override
     public final void onSensorChanged(SensorEvent event) {
         if (SensorHandlerService.flagForAcc) {
-
-            XYZwithTime data = new XYZwithTime();
-            AccelerometerNewDataHandler dbNewData = new AccelerometerNewDataHandler(mContext);
             // Many sensors return 3 values, one for each axis.
             data.setTime(HelperFunctions.getDateTime());
             data.setX(event.values[0]);

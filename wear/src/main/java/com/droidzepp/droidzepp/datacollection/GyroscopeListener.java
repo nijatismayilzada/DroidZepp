@@ -8,9 +8,12 @@ import android.util.Log;
 
 public class GyroscopeListener implements SensorEventListener {
     private Context mContext;
+    private XYZ data = new XYZ();
+    public GyroscopeNewDataHandler dbNewData;
 
     public GyroscopeListener(Context context){
         mContext = context;
+        dbNewData = new GyroscopeNewDataHandler(mContext);;
     }
 
     @Override
@@ -21,9 +24,6 @@ public class GyroscopeListener implements SensorEventListener {
     @Override
     public final void onSensorChanged(SensorEvent event) {
         if (SensorHandlerService.flagForGyro) {
-
-            XYZ data = new XYZ();
-            GyroscopeNewDataHandler dbNewData = new GyroscopeNewDataHandler(mContext);
             // Many sensors return 3 values, one for each axis
             data.setX(event.values[0]);
             data.setY(event.values[1]);
