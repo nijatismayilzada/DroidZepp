@@ -38,21 +38,21 @@ public class PermDatabaseTest extends ApplicationTestCase<Application> {
         assertTrue(result != 0);
     }
 
-    public void testShouldGetWholeDataSet(){
-        ActionsDatabase db = new ActionsDatabase(application.getApplicationContext());
-        double[][][] dataSet = db.getDataSet();
+//    public void testShouldGetWholeDataSet(){
+//        ActionsDatabase db = new ActionsDatabase(application.getApplicationContext());
+//        double[][][] dataSet = db.getDataSet();
+//
+//        assertNotNull(dataSet);
+//        assertTrue(dataSet[1][1][1] != 0);
+//    }
 
-        assertNotNull(dataSet);
-        assertTrue(dataSet[1][1][1] != 0);
-    }
-
-    public void testShouldGetWholeLabelSet(){
-        ActionsDatabase db = new ActionsDatabase(application.getApplicationContext());
-        // On the later stages of the project, labels will be represented as strings
-        int[] labels = db.getLabels();
-
-        assertNotNull(labels);
-        assertTrue(labels[1] != 0);
-    }
+//    public void testShouldGetWholeLabelSet(){
+//        ActionsDatabase db = new ActionsDatabase(application.getApplicationContext());
+//        // On the later stages of the project, labels will be represented as strings
+//        int[] labels = db.getLabels();
+//
+//        assertNotNull(labels);
+//        assertTrue(labels[1] != 0);
+//    }
 
 }

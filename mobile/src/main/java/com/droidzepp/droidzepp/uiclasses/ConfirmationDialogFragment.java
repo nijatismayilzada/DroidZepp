@@ -20,8 +20,8 @@ public class ConfirmationDialogFragment extends DialogFragment {
     }
 
     public interface ConfirmationDialogListener {
-        void onDialogPositiveClick(DialogFragment dialog);
-        void onDialogNegativeClick(DialogFragment dialog);
+        void onConfirmationDialogPositiveClick(DialogFragment dialog);
+        void onConfirmationDialogNegativeClick(DialogFragment dialog);
     }
 
     ConfirmationDialogListener mListener;
@@ -32,12 +32,12 @@ public class ConfirmationDialogFragment extends DialogFragment {
         builder.setMessage(R.string.dialog_confirm_recording)
                 .setPositiveButton(R.string.start_record, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        mListener.onDialogPositiveClick(ConfirmationDialogFragment.this);
+                        mListener.onConfirmationDialogPositiveClick(ConfirmationDialogFragment.this);
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        mListener.onDialogNegativeClick(ConfirmationDialogFragment.this);
+                        mListener.onConfirmationDialogNegativeClick(ConfirmationDialogFragment.this);
                     }
                 });
         // Create the AlertDialog object and return it

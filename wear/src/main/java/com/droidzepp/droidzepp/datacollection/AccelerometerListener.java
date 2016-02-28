@@ -7,13 +7,18 @@ import android.hardware.SensorEventListener;
 import android.util.Log;
 
 public class AccelerometerListener implements SensorEventListener {
+    private static final String LOGTAG = "AccelerometerListener";
     private Context mContext;
+    private AccelerometerNewDataHandler dbNewData;
     private XYZ data = new XYZ();
-    public AccelerometerNewDataHandler dbNewData;
 
     public AccelerometerListener(Context context){
         mContext = context;
         dbNewData = new AccelerometerNewDataHandler(mContext);
+    }
+
+    public AccelerometerNewDataHandler getDbNewData() {
+        return dbNewData;
     }
 
     @Override
@@ -28,7 +33,9 @@ public class AccelerometerListener implements SensorEventListener {
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
-            Log.d("droidzepp.wear.acc", String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
+            Log.d(LOGTAG, String.valueOf(data.getX()) + "  " +
+                    String.valueOf(data.getY()) + "  " +
+                    String.valueOf(data.getZ()));
             dbNewData.addXYZ(data);
             SensorHandlerService.flagForAcc = false;
         }

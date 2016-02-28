@@ -8,6 +8,8 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
@@ -32,10 +34,9 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private Handler hndlStartRecording;
     private Handler hndlRecording;
     private Handler hndlEndRecording;
-    private AccelerometerNewDataHandler dbNewAccData;
-    private GyroscopeNewDataHandler dbNewGyroData;
     private int recordingLength = 15000;  //60000 = 1 minute
     private int sensorDelay = 200;
+    private static final String LOGTAG = "SensorHandlerService";
 
     private static final String START_KEY = "droidzepp.start";
     private GoogleApiClient mGoogleApiClient;
@@ -44,19 +45,20 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     public static boolean flagForGyro = false;
     public static boolean newDataRecorded = false;
     public static boolean startFlagFromMobile = false;
+    PowerManager powerManager;
+    PowerManager.WakeLock wakeLock;
 
     private final Runnable prcsStartRecording = new Runnable() {
         @Override
         public void run() {
-            Log.d("p", "Recording started");
-            dbNewAccData.openDB();
-            dbNewAccData.clearTable();
-            dbNewAccData.close();
-            dbNewGyroData.openDB();
-            dbNewGyroData.clearTable();
-            dbNewGyroData.close();
-            mAccEventListener.dbNewData.openDB();
-            mGyroEventListener.dbNewData.openDB();
+            Log.d(LOGTAG, "Recording started");
+            powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DroidZeppWakeClock");
+            wakeLock.acquire(recordingLength + 3000);
+            mAccEventListener.getDbNewData().openWritableDB();
+            mGyroEventListener.getDbNewData().openWritableDB();
+            mAccEventListener.getDbNewData().clearTable();
+            mGyroEventListener.getDbNewData().clearTable();
             mSensorManager.registerListener(mAccEventListener, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
             mSensorManager.registerListener(mGyroEventListener, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
             hndlRecording.post(prcsRecording);
@@ -76,14 +78,14 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private final Runnable prcsEndRecording = new Runnable() {
         @Override
         public void run() {
-            Log.d("p", "End of recording");
             hndlRecording.removeCallbacks(prcsRecording);
             mSensorManager.unregisterListener(mAccEventListener, mAccelerometer);
             mSensorManager.unregisterListener(mGyroEventListener, mGyroscope);
-            mAccEventListener.dbNewData.close();
-            mGyroEventListener.dbNewData.close();
+            mAccEventListener.getDbNewData().closeDB();
+            mGyroEventListener.getDbNewData().closeDB();
             hndlEndRecording.removeCallbacks(prcsEndRecording);
             newDataRecorded = true;
+            Log.d(LOGTAG, "End of recording");
         }
     };
 
@@ -109,8 +111,6 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
         hndlStartRecording = new Handler();
         hndlEndRecording = new Handler();
         hndlRecording = new Handler();
-        dbNewAccData = new AccelerometerNewDataHandler(this);
-        dbNewGyroData = new GyroscopeNewDataHandler(this);
         super.onCreate();
     }
 
@@ -138,14 +138,14 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
-        Log.d("droidzepp.wear.start", "New start event happened");
         for (DataEvent event : dataEvents) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
                 DataItem item = event.getDataItem();
                 if (item.getUri().getPath().compareTo("/prcsStartRecording") == 0) {
+                    Log.d(LOGTAG, "New start data event happened");
                     DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
                     startFlagFromMobile = dataMap.getBoolean(START_KEY);
-                    Log.d("droidzepp.wear.start", "startFlagFromMobile: " + Boolean.toString(startFlagFromMobile));
+                    Log.d(LOGTAG, "startFlagFromMobile: " + Boolean.toString(startFlagFromMobile));
                     if (startFlagFromMobile) {
                         hndlStartRecording.post(prcsStartRecording);
                         startFlagFromMobile = false;
@@ -156,7 +156,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.d("droidzepp.wear", "Connection failed");
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.d(LOGTAG, "Connection failed");
     }
 }

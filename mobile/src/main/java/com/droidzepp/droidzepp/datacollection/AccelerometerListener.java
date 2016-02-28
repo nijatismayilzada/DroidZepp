@@ -9,13 +9,18 @@ import android.util.Log;
 import com.droidzepp.droidzepp.HelperFunctions;
 
 public class AccelerometerListener implements SensorEventListener {
+    private static final String LOGTAG = "AccelerometerListener";
     private Context mContext;
-    XYZwithTime data = new XYZwithTime();
-    AccelerometerNewDataHandler dbNewData;
+    private AccelerometerNewDataHandler dbNewData;
+    private XYZwithTime data = new XYZwithTime();
 
     public AccelerometerListener(Context context){
         mContext = context;
         dbNewData = new AccelerometerNewDataHandler(mContext);
+    }
+
+    public AccelerometerNewDataHandler getDbNewData() {
+        return dbNewData;
     }
 
     @Override
@@ -31,7 +36,10 @@ public class AccelerometerListener implements SensorEventListener {
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
-            Log.d("droidzepp.mob.acc", String.valueOf(data.getTime()) + " " + String.valueOf(data.getX()) + "  " + String.valueOf(data.getY()) + "  " + String.valueOf(data.getZ()));
+            Log.d(LOGTAG, String.valueOf(data.getTime()) + " " +
+                    String.valueOf(data.getX()) + "  " +
+                    String.valueOf(data.getY()) + "  " +
+                    String.valueOf(data.getZ()));
             dbNewData.addXYZ(data);
             SensorHandlerService.flagForAcc = false;
         }

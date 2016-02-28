@@ -18,11 +18,11 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
     private static final String KEY_X = "x";
     private static final String KEY_Y = "y";
     private static final String KEY_Z = "z";
-    SQLiteDatabase db;
+    private SQLiteDatabase gyroTempDB;
+    private ContentValues values = new ContentValues();
 
     public GyroscopeNewDataHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        db = this.getWritableDatabase();
     }
 
     @Override
@@ -36,31 +36,34 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_GYROSCOPE);
-
         onCreate(db);
     }
 
-    public long addXYZ(XYZ data) {
-        //SQLiteDatabase db = this.getWritableDatabase();
+    public void openWritableDB(){
+        gyroTempDB = this.getWritableDatabase();
+    }
 
-        ContentValues values = new ContentValues();
+    public void openReadableDB(){
+        gyroTempDB = this.getReadableDatabase();
+    }
+
+    public void closeDB(){
+        gyroTempDB.close();
+    }
+
+    public long addXYZ(XYZ data) {
         values.put(KEY_X, data.getX());
         values.put(KEY_Y, data.getY());
         values.put(KEY_Z, data.getZ());
-
         // Inserting Row
-        long insertedRow = db.insert(TABLE_GYROSCOPE, null, values);
-        //db.close(); // Closing database connection
+        long insertedRow = gyroTempDB.insert(TABLE_GYROSCOPE, null, values);
         return insertedRow;
     }
 
     public List<XYZ> getAllData() {
-        List<XYZ> dataList = new ArrayList<XYZ>();
+        List<XYZ> dataList = new ArrayList<>();
         String selectQuery = "SELECT  * FROM " + TABLE_GYROSCOPE;
-
-        //SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(selectQuery, null);
-
+        Cursor cursor = gyroTempDB.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) {
             do {
                 XYZ entry = new XYZ();
@@ -70,21 +73,10 @@ public class GyroscopeNewDataHandler extends SQLiteOpenHelper {
                 dataList.add(entry);
             } while (cursor.moveToNext());
         }
-
-        //db.close();
         return dataList;
     }
 
     public void clearTable(){
-        //SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("DELETE FROM xyzRecords;");
-        //db.close();
-    }
-
-    public void closeDB(){
-        db.close();
-    }
-    public void openDB(){
-        db = this.getWritableDatabase();
+        gyroTempDB.execSQL("DELETE FROM " + TABLE_GYROSCOPE + ";");
     }
 }

@@ -1,10 +1,10 @@
 package com.droidzepp.droidzepp.datacollection;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,8 +12,10 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.droidzepp.droidzepp.HelperFunctions;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
@@ -34,24 +36,17 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
     private SensorManager mSensorManager;
-    private SensorEventListener mAccEventListener;
-    private SensorEventListener mGyroEventListener;
+    private AccelerometerListener mAccEventListener;
+    private GyroscopeListener mGyroEventListener;
     private Handler hndlStartRecording;
     private Handler hndlRecording;
     private Handler hndlEndRecording;
     private ExecutorService executorService;
-    private AccelerometerNewDataHandler dbNewAccData;
-    private GyroscopeNewDataHandler dbNewGyroData;
-    private int recordingInterval = 60000;  // 1200000 = 20 minutes
+    //private int recordingInterval = 60000;  // 1200000 = 20 minutes
     private int recordingLength = 15000;  //60000 = 1 minute
     private int sensorDelay = 200;
 
-
-    public static final int MSG_REGISTER_CLIENT = 1;
-    public static final int MSG_UNREGISTER_CLIENT = 2;
-    public static final int MSG_START_RECORDING = 3;
-    public static final int MSG_RECORDING_DONE = 4;
-
+    private static final String LOGTAG = "SensorHandlerService";
     private static final String START_KEY = "droidzepp.start";
     private static final int CLIENT_CONNECTION_TIMEOUT = 10000;
     private GoogleApiClient mGoogleApiClient;
@@ -75,11 +70,9 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
                     PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
                     putDataReq.setUrgent();
                     if (validateConnection()) {
-                        Log.d("droidzepp.mob", "connection is okay");
                         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
                             @Override
-                            public void onResult(DataApi.DataItemResult dataItemResult) {
-                                Log.d("droidzepp.mob.start", "Sending start message: " + dataItemResult.getStatus().isSuccess());
+                            public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
                             }
                         });
                     }
@@ -88,20 +81,22 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
                     putDataReq = putDataMapReq.asPutDataRequest();
                     putDataReq.setUrgent();
                     if (validateConnection()) {
-                        Log.d("droidzepp.mob", "connection is okay");
+                        Log.d(LOGTAG, "Connection to wearable is okay");
                         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
                             @Override
-                            public void onResult(DataApi.DataItemResult dataItemResult) {
-                                Log.d("droidzepp.mob.start", "Sending start message: " + dataItemResult.getStatus().isSuccess());
+                            public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
+                                Log.d(LOGTAG, "Status of sending start message: " + dataItemResult.getStatus().isSuccess());
                             }
                         });
                     }
 
                 }
             });
-            Log.d("p", "Recording started");
-            dbNewAccData.clearTable();
-            dbNewGyroData.clearTable();
+            Log.d(LOGTAG, "Recording started");
+            mAccEventListener.getDbNewData().openWritableDB();
+            mGyroEventListener.getDbNewData().openWritableDB();
+            mAccEventListener.getDbNewData().clearTable();
+            mGyroEventListener.getDbNewData().clearTable();
             mSensorManager.registerListener(mAccEventListener, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
             mSensorManager.registerListener(mGyroEventListener, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
             hndlRecording.post(prcsRecording);
@@ -122,51 +117,24 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private final Runnable prcsEndRecording = new Runnable() {
         @Override
         public void run() {
-            Log.d("p", "End of recording");
             hndlRecording.removeCallbacks(prcsRecording);
             mSensorManager.unregisterListener(mAccEventListener, mAccelerometer);
             mSensorManager.unregisterListener(mGyroEventListener, mGyroscope);
+            mAccEventListener.getDbNewData().closeDB();
+            mGyroEventListener.getDbNewData().closeDB();
             hndlEndRecording.removeCallbacks(prcsEndRecording);
             newDataRecorded = true;
-
-            for (int i=messageSender.size()-1; i>=0; i--) {
-                try {
-                    // Send data as an Integer
-                    messageSender.get(i).send(Message.obtain(null, MSG_RECORDING_DONE));
-                }
-                catch (RemoteException e) {
-                    messageSender.remove(i);
-                }
-            }
-
+            sendMessageToMainActivity(HelperFunctions.MSG_RECORDING_DONE);
+            Log.d(LOGTAG, "End of recording");
         }
     };
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.d("droidzepp.mob", "Binding...");
+        Log.d(LOGTAG, "Binding...");
         return messageReceiver.getBinder();
     }
 
-    class IncomingHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MSG_REGISTER_CLIENT:
-                    messageSender.add(msg.replyTo);
-                    break;
-                case MSG_UNREGISTER_CLIENT:
-                    messageSender.remove(msg.replyTo);
-                    break;
-                case MSG_START_RECORDING:
-                    Log.d("droidzepp.mob.class", "Recording..");
-                    hndlStartRecording.post(prcsStartRecording);
-                    break;
-                default:
-                    super.handleMessage(msg);
-            }
-        }
-    }
     @Override
     public void onCreate() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -183,11 +151,8 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
         mAccEventListener = new AccelerometerListener(getApplicationContext());
         mGyroEventListener = new GyroscopeListener(getApplicationContext());
         hndlStartRecording = new Handler();
-        hndlEndRecording = new Handler();
         hndlRecording = new Handler();
-        dbNewAccData = new AccelerometerNewDataHandler(this);
-        dbNewGyroData = new GyroscopeNewDataHandler(this);
-
+        hndlEndRecording = new Handler();
         //hndlStartRecording.post(prcsStartRecording);
         super.onCreate();
     }
@@ -220,17 +185,43 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
 
     private boolean validateConnection() {
-        if (mGoogleApiClient.isConnected()) {
+        if (mGoogleApiClient.isConnected())
             return true;
+        ConnectionResult result = mGoogleApiClient.blockingConnect(CLIENT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+        return result.isSuccess();
+    }
+
+    @SuppressLint("HandlerLeak")
+    class IncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case HelperFunctions.MSG_REGISTER_CLIENT:
+                    messageSender.add(msg.replyTo);
+                    break;
+                case HelperFunctions.MSG_UNREGISTER_CLIENT:
+                    messageSender.remove(msg.replyTo);
+                    break;
+                case HelperFunctions.MSG_START_RECORDING:
+                    hndlStartRecording.post(prcsStartRecording);
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
+
+    private void sendMessageToMainActivity(int message) {
+        try {
+            messageSender.get(0).send(Message.obtain(null, message));
+        } catch (RemoteException e) {
+            messageSender.remove(0);
         }
 
-        ConnectionResult result = mGoogleApiClient.blockingConnect(CLIENT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
-
-        return result.isSuccess();
     }
 }

@@ -19,6 +19,8 @@ public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
     private static final String KEY_X = "x";
     private static final String KEY_Y = "y";
     private static final String KEY_Z = "z";
+    private SQLiteDatabase accTempDB;
+    private ContentValues values = new ContentValues();
 
     public AccelerometerNewDataHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -39,28 +41,33 @@ public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
         onCreate(db);
     }
 
-    public long addXYZ(XYZwithTime data) {
-        SQLiteDatabase db = this.getWritableDatabase();
+    public void openWritableDB(){
+        accTempDB = this.getWritableDatabase();
+    }
 
-        ContentValues values = new ContentValues();
+    public void openReadableDB(){
+        accTempDB = this.getReadableDatabase();
+    }
+
+    public void closeDB(){
+        accTempDB.close();
+    }
+
+    public long addXYZ(XYZwithTime data) {
         values.put(KEY_TIME, data.getTime());
         values.put(KEY_X, data.getX());
         values.put(KEY_Y, data.getY());
         values.put(KEY_Z, data.getZ());
-
         // Inserting Row
-        long insertedRow = db.insert(TABLE_ACCELEROMETER, null, values);
-        db.close(); // Closing database connection
+        long insertedRow = accTempDB.insert(TABLE_ACCELEROMETER, null, values);
+        values.clear();
         return insertedRow;
     }
 
     public List<XYZwithTime> getAllData() {
         List<XYZwithTime> dataList = new ArrayList<>();
         String selectQuery = "SELECT  * FROM " + TABLE_ACCELEROMETER;
-
-        SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(selectQuery, null);
-
+        Cursor cursor = accTempDB.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) {
             do {
                 XYZwithTime entry = new XYZwithTime();
@@ -71,14 +78,10 @@ public class AccelerometerNewDataHandler extends SQLiteOpenHelper{
                 dataList.add(entry);
             } while (cursor.moveToNext());
         }
-
-        db.close();
         return dataList;
     }
 
     public void clearTable(){
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("DELETE FROM xyzRecords;");
-        db.close();
+        accTempDB.execSQL("DELETE FROM " + TABLE_ACCELEROMETER + ";");
     }
 }

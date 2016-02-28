@@ -14,6 +14,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     private static final int DATABASE_VERSION = 1;
     private static final String DATABASE_NAME = "actionsDatabase.db";
+
     private static final String TABLE_ACTIONS = "features";
     private static final String KEY_ID = "id";
     private static final String KEY_TIME = "time";
@@ -37,7 +38,8 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     private static final String LOGTAG = "ActionsDatabase";
 
-    private SQLiteDatabase db;
+    private SQLiteDatabase actionsDB;
+    private ContentValues values = new ContentValues();
 
     public ActionsDatabase(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -69,9 +71,19 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public long addFeatures(FeatureContainer data) {
+    public void openWritableDB(){
+        actionsDB = this.getWritableDatabase();
+    }
 
-        ContentValues values = new ContentValues();
+    public void openReadableDB(){
+        actionsDB = this.getReadableDatabase();
+    }
+
+    public void closeDB(){
+        actionsDB.close();
+    }
+
+    public long addFeatures(FeatureContainer data) {
         values.put(KEY_TIME, data.getTime());
         values.put(KEY_1, data.getAccMX());
         values.put(KEY_2, data.getAccMY());
@@ -86,9 +98,8 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         values.put(KEY_11, data.getGyroWY());
         values.put(KEY_12, data.getGyroWZ());
         values.put(KEY_LID, data.getlId());
-
         // Inserting Row
-        long rowNumber = db.insert(TABLE_ACTIONS, null, values);
+        long rowNumber = actionsDB.insert(TABLE_ACTIONS, null, values);
         values.clear();
         return rowNumber;
     }
@@ -98,18 +109,14 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         long recent;
         int newIntLabel;
 
-        Cursor cursorMax = db.rawQuery(queryMaxLabel, null);
-        if (cursorMax.getCount() == 0) {
-            newIntLabel = 1;
-        } else {
-            cursorMax.moveToFirst();
+        Cursor cursorMax = actionsDB.rawQuery(queryMaxLabel, null);
+        cursorMax.moveToFirst();
             newIntLabel = cursorMax.getInt(0) + 1;
-        }
 
-        ContentValues values = new ContentValues();
         values.put(KEY_NAME, newStringLabel);
         values.put(KEY_LABEL, newIntLabel);
-        recent = db.insert(TABLE_LABELS, null, values);
+        recent = actionsDB.insert(TABLE_LABELS, null, values);
+        values.clear();
 
         return recent;
     }
@@ -119,8 +126,8 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         String querySameLabel = "SELECT " + KEY_LABEL + " FROM " + TABLE_LABELS + " WHERE " + KEY_NAME + " = '" + newStringLabel + "'";
         int newIntLabel;
 
-        Cursor cursorMax = db.rawQuery(queryMaxLabel, null);
-        Cursor cursorSame = db.rawQuery(querySameLabel, null);
+        Cursor cursorMax = actionsDB.rawQuery(queryMaxLabel, null);
+        Cursor cursorSame = actionsDB.rawQuery(querySameLabel, null);
         if (cursorSame.getCount() == 0) {
             cursorMax.moveToFirst();
             newIntLabel = cursorMax.getInt(0);
@@ -129,16 +136,16 @@ public class ActionsDatabase extends SQLiteOpenHelper {
             newIntLabel = cursorSame.getInt(0);
         }
 
-        ContentValues values = new ContentValues();
         values.put(KEY_NAME, newStringLabel);
         values.put(KEY_LABEL, newIntLabel);
-        int affectedRows = db.update(TABLE_LABELS, values, KEY_ID + "=" + rowId, null);
+        int affectedRows = actionsDB.update(TABLE_LABELS, values, KEY_ID + "=" + rowId, null);
+        values.clear();
         return affectedRows;
     }
 
     public double[][][] getDataSet(int forThisTestData) {
         String selectQuery = "SELECT * FROM " + TABLE_ACTIONS + " EXCEPT SELECT * FROM " + TABLE_ACTIONS + " WHERE " + KEY_LID + " = " + forThisTestData;
-        Cursor cursor = db.rawQuery(selectQuery, null);
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
 
         int numFeatures = getMinCountOfDistinctLabels();
         int numLabels = getLabels(forThisTestData).length;
@@ -175,7 +182,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     public double [][] getTestData(int forThisTestData){
         String selectQuery = "SELECT * FROM " + TABLE_ACTIONS + " WHERE " + KEY_LID + " = " + forThisTestData;
-        Cursor cursor = db.rawQuery(selectQuery, null);
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
 
         int numFeatures = cursor.getCount();
 
@@ -204,26 +211,33 @@ public class ActionsDatabase extends SQLiteOpenHelper {
 
     public int[] getLabels(int forThisTestData) {
         String selectQuery = "SELECT * FROM " + TABLE_LABELS + " EXCEPT SELECT * FROM " + TABLE_LABELS + " WHERE " + KEY_ID + " = " + forThisTestData;
-        Cursor cursor = db.rawQuery(selectQuery, null);
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
         int[] labels = new int[cursor.getCount()];
         int count = 0;
         if(cursor.moveToFirst()){
             do{
-                labels[count] = cursor.getInt(cursor.getColumnIndex(KEY_LABEL));
+                labels[count] = cursor.getInt(cursor.getColumnIndex(KEY_LABEL))-1;
                 count++;
             }while (cursor.moveToNext());
         }
         return labels;
     }
 
+    public String getLabel(int lId){
+        String selectQuery = "SELECT * FROM " + TABLE_LABELS + " WHERE " + KEY_LABEL + " = " + lId;
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
+        cursor.moveToFirst();
+        return cursor.getString(cursor.getColumnIndex(KEY_NAME));
+    }
+
     public String[] getClasses(int forThisTestData) {
         String selectQuery = "SELECT DISTINCT(" + KEY_LABEL + ") FROM " + TABLE_LABELS + " EXCEPT SELECT DISTINCT(" + KEY_LABEL + ") FROM " + TABLE_LABELS + " WHERE " + KEY_ID + " = " + forThisTestData;
-        Cursor cursor = db.rawQuery(selectQuery, null);
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
         String[] classes = new String[cursor.getCount()];
         int count = 0;
         if(cursor.moveToFirst()){
             do{
-                classes[count] = String.valueOf(cursor.getInt(0));
+                classes[count] = String.valueOf(cursor.getInt(0)-1);
                 count++;
             }while (cursor.moveToNext());
         }
@@ -233,23 +247,19 @@ public class ActionsDatabase extends SQLiteOpenHelper {
     public int getMinCountOfDistinctLabels() {
         String selectQuery = "SELECT MIN(myCount) FROM (SELECT COUNT(" + KEY_LID + ") myCount FROM " + TABLE_ACTIONS + " GROUP BY " + KEY_LID + ")";
 
-        Cursor cursor = db.rawQuery(selectQuery, null);
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
         cursor.moveToFirst();
         return cursor.getInt(0);
     }
 
     public void deleteRecordedAction(int lId) {
-        db.delete(TABLE_ACTIONS, KEY_LID + " = " + lId, null);
-        db.delete(TABLE_LABELS, KEY_ID + " = " + lId, null);
-    }
-
-    public String getForeignKey() {
-        return TABLE_LABELS + "(" + KEY_ID + ")";
+        actionsDB.delete(TABLE_ACTIONS, KEY_LID + " = " + lId, null);
+        actionsDB.delete(TABLE_LABELS, KEY_ID + " = " + lId, null);
     }
 
     public ArrayList<RecordedActionListElement> getRecordedActions() {
         String selectQuery = "SELECT * FROM " + TABLE_LABELS + " GROUP BY " + KEY_NAME;
-        Cursor cursor = db.rawQuery(selectQuery, null);
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
 
         ArrayList<RecordedActionListElement> recordedActions = new ArrayList<>();
         if (cursor.moveToFirst()) {
@@ -259,14 +269,4 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         }
         return recordedActions;
     }
-
-    public void openDB(){
-        db = this.getWritableDatabase();
-    }
-
-    public void closeDB(){
-        db.close();
-    }
-
-
 }

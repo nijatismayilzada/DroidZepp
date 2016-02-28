@@ -1,17 +1,19 @@
 package com.droidzepp.droidzepp.classification;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.os.StrictMode;
+import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.Toast;
 
+import com.droidzepp.droidzepp.HelperFunctions;
 import com.droidzepp.droidzepp.datacollection.AccelerometerNewDataHandler;
 import com.droidzepp.droidzepp.datacollection.GyroscopeNewDataHandler;
 import com.droidzepp.droidzepp.datacollection.XYZ;
@@ -36,10 +38,6 @@ import org.ksoap2.transport.HttpTransportSE;
 import java.util.ArrayList;
 import java.util.List;
 
-
-/**
- * Created by nijat on 28/10/15.
- */
 public class ClassifyService extends Service implements DataApi.DataListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
@@ -51,11 +49,6 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     final Messenger messageReceiver = new Messenger(new IncomingHandler());
     ArrayList<Messenger> messageSender = new ArrayList<>();
 
-    public static final int MSG_START_RECORDING = 3;
-    public static final int MSG_REGISTER_CLIENT = 1;
-    public static final int MSG_UNREGISTER_CLIENT = 2;
-    public static final int MSG_COMBINING_DONE = 5;
-    public static int MSG_LABEL_ID = 10;
     public static int recentRecordedActionID;
 
     private static String URLS = "http://droidzepp.azurewebsites.net/Service.asmx";
@@ -120,36 +113,18 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         super.onLowMemory();
     }
 
-    class IncomingHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.what > 10) {
-                recentRecordedActionID = msg.what - 11;
-                classify(recentRecordedActionID);
-            } else {
-                switch (msg.what) {
-                    case MSG_REGISTER_CLIENT:
-                        messageSender.add(msg.replyTo);
-                        break;
-                    case MSG_UNREGISTER_CLIENT:
-                        messageSender.remove(msg.replyTo);
-                        break;
-                    default:
-                        super.handleMessage(msg);
-                }
-            }
-        }
-    }
-
     public long extractFeatures(ArrayList<DataMap> wData) {
         Log.d(LOGTAG, "New data is received and it will be combined with existing data");
         AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
         ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
-        actionsDB.openDB();
-
+        actionsDB.openWritableDB();
+        dbAccNewData.openReadableDB();
+        dbGyroNewData.openReadableDB();
         List<XYZwithTime> mDataAcc = dbAccNewData.getAllData();
         List<XYZ> mDataGyro = dbGyroNewData.getAllData();
+        dbAccNewData.closeDB();
+        dbGyroNewData.closeDB();
         FeatureContainer extractedFeatures = new FeatureContainer();
 
         long actionLabelID = actionsDB.addNewLabel("unknown action");
@@ -174,81 +149,15 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             extractedFeatures.setlId(actionLabelID);
             actionsDB.addFeatures(extractedFeatures);
         }
-        actionsDB.close();
+        actionsDB.closeDB();
         actionLabelID += 11;
         sendMessageToMainActivity((int) actionLabelID);
-        sendMessageToMainActivity(MSG_COMBINING_DONE);
+        sendMessageToMainActivity(HelperFunctions.MSG_COMBINING_DONE);
         return actionLabelID;
     }
 
-    void classify(int lIdToTest) {
-        ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
-        actionsDB.openDB();
-        double[][][] trainDataSet = actionsDB.getDataSet(lIdToTest);
-        int[] trainLabels = actionsDB.getLabels(lIdToTest);
-        double[][] testData = actionsDB.getTestData(lIdToTest);
-        String[] classes = actionsDB.getClasses(lIdToTest);
-        actionsDB.close();
-
-        String resTxt;
-        // Create request
-        SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
-
-        PropertyInfo pi = new PropertyInfo();
-        pi.setName("trainDataSet");
-        pi.setValue(trainDataSet);
-        pi.type = double[][][].class;
-        request.addProperty(pi);
-
-        PropertyInfo pi2 = new PropertyInfo();
-        pi2.setName("trainLabels");
-        pi2.setValue(trainLabels);
-        pi2.type = int[].class;
-        request.addProperty(pi2);
-
-        PropertyInfo pi3 = new PropertyInfo();
-        pi3.setName("testData");
-        pi3.setValue(testData);
-        pi3.type = double[][].class;
-        request.addProperty(pi3);
-
-        PropertyInfo pi4 = new PropertyInfo();
-        pi4.setName("classes");
-        pi4.setValue(classes);
-        pi4.type = String[].class;
-        request.addProperty(pi4);
-
-        // Create envelope
-        SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
-        envelope.dotNet = true;
-        envelope.setOutputSoapObject(request);
-
-        new MarshalDouble3D().register(envelope);
-        new MarshalInt1D().register(envelope);
-        new MarshalDouble2D().register(envelope);
-        new MarshalString1D().register(envelope);
-
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
-        // Create HTTP call object
-        HttpTransportSE androidHttpTransport = new HttpTransportSE(URLS);
-        androidHttpTransport.debug = true;
-        try {
-            // Invoke web service
-            androidHttpTransport.call(SOAP_ACTION + METHOD_NAME, envelope);
-            // Get the response
-            SoapPrimitive response = (SoapPrimitive) envelope.getResponse();
-            // Assign it to resTxt variable static variable
-            resTxt = response.toString();
-        } catch (Exception e) {
-            //Print error
-            e.printStackTrace();
-            //Assign error message to resTxt
-            resTxt = "Error occured";
-        }
-        //Return resTxt to calling object
-        Log.d(LOGTAG, "Result of classifier: " + resTxt);
-        Toast.makeText(this, resTxt, Toast.LENGTH_LONG).show();
+    public void classify(int lIdToTest) {
+        new DroidAsyncTask().execute(lIdToTest);
     }
 
     @Override
@@ -258,18 +167,16 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 
     @Override
     public void onConnectionSuspended(int i) {
-        // TODO
-
     }
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
-        Log.d("droidzepp.mobile.data", "New data event happened");
+        Log.d(LOGTAG, "New data event happened");
         for (DataEvent event : dataEvents) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
                 DataItem item = event.getDataItem();
                 if (item.getUri().getPath().compareTo("/wearData") == 0) {
-                    Log.d("droidzepp.mobile.data", "New data came from wear");
+                    Log.d(LOGTAG, "New data came from wear");
                     extractFeatures(DataMapItem.fromDataItem(item).getDataMap().getDataMapArrayList(DATA_KEY));
                 }
             }
@@ -277,18 +184,123 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.d("droidzepp.mobile", "Connection failed");
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.d(LOGTAG, "Wearable connection failed");
+    }
+
+    class DroidAsyncTask extends AsyncTask<Integer, Void, String>{
+        @Override
+        protected String doInBackground(Integer... params) {
+            ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
+            actionsDB.openReadableDB();
+            int lIdToTest = params[0];
+            Log.d(LOGTAG, "lId to test: " + lIdToTest);
+            double[][][] trainDataSet = actionsDB.getDataSet(lIdToTest);
+            int[] trainLabels = actionsDB.getLabels(lIdToTest);
+            double[][] testData = actionsDB.getTestData(lIdToTest);
+            String[] classes = actionsDB.getClasses(lIdToTest);
+            actionsDB.closeDB();
+
+            String resTxt = "";
+            // Create request
+            SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
+
+            PropertyInfo pi = new PropertyInfo();
+            pi.setName("trainDataSet");
+            pi.setValue(trainDataSet);
+            pi.type = double[][][].class;
+            request.addProperty(pi);
+
+            PropertyInfo pi2 = new PropertyInfo();
+            pi2.setName("trainLabels");
+            pi2.setValue(trainLabels);
+            pi2.type = int[].class;
+            request.addProperty(pi2);
+
+            PropertyInfo pi3 = new PropertyInfo();
+            pi3.setName("testData");
+            pi3.setValue(testData);
+            pi3.type = double[][].class;
+            request.addProperty(pi3);
+
+            PropertyInfo pi4 = new PropertyInfo();
+            pi4.setName("classes");
+            pi4.setValue(classes);
+            pi4.type = String[].class;
+            request.addProperty(pi4);
+
+            // Create envelope
+            SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
+            envelope.dotNet = true;
+            envelope.setOutputSoapObject(request);
+
+            new MarshalDouble3D().register(envelope);
+            new MarshalInt1D().register(envelope);
+            new MarshalDouble2D().register(envelope);
+            new MarshalString1D().register(envelope);
+
+            // Create HTTP call object
+            HttpTransportSE androidHttpTransport = new HttpTransportSE(URLS);
+            androidHttpTransport.debug = true;
+            try {
+                // Invoke web service
+                androidHttpTransport.call(SOAP_ACTION + METHOD_NAME, envelope);
+                // Get the response
+                SoapPrimitive response = (SoapPrimitive) envelope.getResponse();
+                // Assign it to resTxt variable static variable
+                resTxt = response.toString();
+            } catch (Exception e) {
+                //Print error
+                e.printStackTrace();
+                //Assign error message to resTxt
+                resTxt = resTxt + "Error occurred";
+            }
+            //Return resTxt to calling object
+            Log.d(LOGTAG, "Result of classifier: " + resTxt);
+            return resTxt;
+        }
+
+        @Override
+        protected void onPostExecute(String resTxt) {
+            sendMessageToMainActivity(HelperFunctions.MSG_CLASSIFIER_RESULT, resTxt);
+        }
+    }
+
+    @SuppressLint("HandlerLeak")
+    class IncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what > 10) {
+                recentRecordedActionID = msg.what - 11;
+                classify(recentRecordedActionID);
+            } else {
+                switch (msg.what) {
+                    case HelperFunctions.MSG_REGISTER_CLIENT:
+                        messageSender.add(msg.replyTo);
+                        break;
+                    case HelperFunctions.MSG_UNREGISTER_CLIENT:
+                        messageSender.remove(msg.replyTo);
+                        break;
+                    default:
+                        super.handleMessage(msg);
+                }
+            }
+        }
     }
 
     private void sendMessageToMainActivity(int message) {
-        for (int i = messageSender.size() - 1; i >= 0; i--) {
-            try {
-                // Send data as an Integer
-                messageSender.get(i).send(Message.obtain(null, message));
-            } catch (RemoteException e) {
-                messageSender.remove(i);
-            }
+        try {
+            messageSender.get(0).send(Message.obtain(null, message));
+        } catch (RemoteException e) {
+            messageSender.remove(0);
+        }
+    }
+
+    private void sendMessageToMainActivity(int message, Object a) {
+        try {
+            messageSender.get(0).send(Message.obtain(null, message, a));
+        } catch (RemoteException e) {
+            messageSender.remove(0);
         }
     }
 }

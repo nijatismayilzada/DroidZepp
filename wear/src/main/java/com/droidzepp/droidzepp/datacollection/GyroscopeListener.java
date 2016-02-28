@@ -7,13 +7,18 @@ import android.hardware.SensorEventListener;
 import android.util.Log;
 
 public class GyroscopeListener implements SensorEventListener {
+    private static final String LOGTAG = "GyroscopeListener";
     private Context mContext;
+    private GyroscopeNewDataHandler dbNewData;
     private XYZ data = new XYZ();
-    public GyroscopeNewDataHandler dbNewData;
 
     public GyroscopeListener(Context context){
         mContext = context;
-        dbNewData = new GyroscopeNewDataHandler(mContext);;
+        dbNewData = new GyroscopeNewDataHandler(mContext);
+    }
+
+    public GyroscopeNewDataHandler getDbNewData() {
+        return dbNewData;
     }
 
     @Override
@@ -28,7 +33,7 @@ public class GyroscopeListener implements SensorEventListener {
             data.setX(event.values[0]);
             data.setY(event.values[1]);
             data.setZ(event.values[2]);
-            Log.d("droidzepp.wear.gyro",
+            Log.d(LOGTAG,
                     String.valueOf(data.getX()) + "  " +
                     String.valueOf(data.getY()) + "  " +
                     String.valueOf(data.getZ()));

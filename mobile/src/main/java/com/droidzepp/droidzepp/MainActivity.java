@@ -1,5 +1,6 @@
 package com.droidzepp.droidzepp;
 
+import android.annotation.SuppressLint;
 import android.app.DialogFragment;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
@@ -28,20 +29,22 @@ import com.droidzepp.droidzepp.uiclasses.ActionsListViewArrayAdapter;
 import com.droidzepp.droidzepp.uiclasses.ClassificationDialogFragment;
 import com.droidzepp.droidzepp.uiclasses.ConfirmationDialogFragment;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class MainActivity extends AppCompatActivity implements ConfirmationDialogFragment.ConfirmationDialogListener, ClassificationDialogFragment.ClassificationDialogListener {
 
     ActionsDatabase actionsDatabase;
-    static final int MSG_RECORDING_DONE = 4;
-    static final int MSG_COMBINING_DONE = 5;
-    static final int MSG_START_RECORDING = 3;
+
     static int recentRecordedActionID;
-    private static final String LOGTAG = "MainActivity";
+    static final String LOGTAG = "MainActivity";
 
     ListView actionsListView;
     ProgressDialog progress;
     DialogFragment confirmation;
     DialogFragment classification;
     ActionsListViewArrayAdapter actionsListAdapter;
+    ExecutorService executorService;
 
     // Messengers between back-end services and front-end
     final Messenger messageReceiver = new Messenger(new IncomingHandler());
@@ -57,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
             classifyServiceMessageSender = new Messenger(service);
             mClassifyBound = true;
             try {
-                Message msg = Message.obtain(null, ClassifyService.MSG_REGISTER_CLIENT);
+                Message msg = Message.obtain(null, HelperFunctions.MSG_REGISTER_CLIENT);
                 msg.replyTo = messageReceiver;
                 classifyServiceMessageSender.send(msg);
             } catch (RemoteException e) {
@@ -71,13 +74,12 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         }
     };
 
-
     private ServiceConnection sensorHandlerServiceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
             sensorHandlerServiceMessageSender = new Messenger(service);
             mSensorHandlerBound = true;
             try {
-                Message msg = Message.obtain(null, SensorHandlerService.MSG_REGISTER_CLIENT);
+                Message msg = Message.obtain(null, HelperFunctions.MSG_REGISTER_CLIENT);
                 msg.replyTo = messageReceiver;
                 sensorHandlerServiceMessageSender.send(msg);
             } catch (RemoteException e) {
@@ -111,11 +113,11 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         });
         actionsDatabase = new ActionsDatabase(this);
         actionsListView = (ListView) findViewById(R.id.actions_listview);
-        actionsDatabase.openDB();
+        actionsDatabase.openReadableDB();
         actionsListAdapter = new ActionsListViewArrayAdapter(this, R.layout.actions_list_item, actionsDatabase.getRecordedActions());
-        actionsDatabase.close();
+        actionsDatabase.closeDB();
         actionsListView.setAdapter(actionsListAdapter);
-
+        executorService = Executors.newCachedThreadPool();
     }
 
     @Override
@@ -160,46 +162,57 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     }
 
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog, String addedLabel) {
+    public void onConfirmationDialogPositiveClick(DialogFragment dialog) {
+        Log.d(LOGTAG, "Start clicked");
+        progress = ProgressDialog.show(this, "Please wait", "Recording the action...", true, false);
+        try {
+            sensorHandlerServiceMessageSender.send(Message.obtain(null, HelperFunctions.MSG_START_RECORDING));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onConfirmationDialogNegativeClick(DialogFragment dialog) {
+        Log.d(LOGTAG, "Cancel clicked");
+    }
+
+    @Override
+    public void onClassificationDialogPositiveClick(DialogFragment dialog, String addedLabel) {
         Log.d(LOGTAG, "Save clicked");
-        actionsDatabase.openDB();
+        actionsDatabase.openWritableDB();
         actionsDatabase.updateLabel(recentRecordedActionID, addedLabel);
         actionsListAdapter.updateContent(actionsDatabase.getRecordedActions());
-        actionsDatabase.close();
+        actionsDatabase.closeDB();
         actionsListView.invalidateViews();
         actionsListView.setAdapter(actionsListAdapter);
     }
 
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog) {
-        Log.d(LOGTAG, "Start clicked");
-        progress = ProgressDialog.show(this, "DroidZepp", "Recording the action...", true, false);
-        try {
-            sensorHandlerServiceMessageSender.send(Message.obtain(null, MSG_START_RECORDING));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onDialogNeutralClick(DialogFragment dialog) {
+    public void onClassificationDialogNeutralClick(DialogFragment dialog) {
         Log.d(LOGTAG, "Neutral clicked");
-        int testThisLabel = recentRecordedActionID + 11;
-        try {
-            classifyServiceMessageSender.send(Message.obtain(null, testThisLabel));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        progress = ProgressDialog.show(this, "Please wait", "Classifying the action...", true, false);
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    classifyServiceMessageSender.send(Message.obtain(null, recentRecordedActionID + 11));
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @Override
-    public void onDialogNegativeClick(DialogFragment dialog) {
+    public void onClassificationDialogNegativeClick(DialogFragment dialog) {
         Log.d(LOGTAG, "Cancel clicked");
-        actionsDatabase.openDB();
+        actionsDatabase.openWritableDB();
         actionsDatabase.deleteRecordedAction(recentRecordedActionID);
-        actionsDatabase.close();
+        actionsDatabase.closeDB();
     }
 
+    @SuppressLint("HandlerLeak")
     class IncomingHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
@@ -207,15 +220,27 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
                 recentRecordedActionID = msg.what - 11;
             } else {
                 switch (msg.what) {
-                    case MSG_RECORDING_DONE:
+                    case HelperFunctions.MSG_RECORDING_DONE:
                         Log.d(LOGTAG, "Recording done");
                         progress.dismiss();
-                        progress = ProgressDialog.show(MainActivity.this, "DroidZepp", "Receiving wearable device data...", true, false);
+                        progress = ProgressDialog.show(MainActivity.this, "Please wait", "Receiving wearable device data...", true, false);
                         break;
-                    case MSG_COMBINING_DONE:
+                    case HelperFunctions.MSG_COMBINING_DONE:
                         Log.d(LOGTAG, "Receiving and combining of wearable data is done");
                         progress.dismiss();
                         classification = new ClassificationDialogFragment(getApplicationContext());
+                        classification.show(getFragmentManager(), "Classification");
+                        break;
+                    case HelperFunctions.MSG_CLASSIFIER_RESULT:
+                        Log.d(LOGTAG, "Classifier result received");
+                        String classificationResult = (String) msg.obj;
+                        Log.d(LOGTAG, "Classifier result: " + classificationResult);
+                        actionsDatabase.openReadableDB();
+                        String actionName = actionsDatabase.getLabel(Integer.parseInt(classificationResult)+1);
+                        Log.d(LOGTAG, "Action name: " + actionName);
+                        actionsDatabase.closeDB();
+                        classification = new ClassificationDialogFragment(getApplicationContext(), actionName);
+                        progress.dismiss();
                         classification.show(getFragmentManager(), "Classification");
                         break;
                     default:

@@ -18,15 +18,21 @@ public class ClassificationDialogFragment extends DialogFragment {
 
     Context context;
     EditText labelName;
+    String classificationResult = "";
 
     public ClassificationDialogFragment(Context context) {
         this.context = context;
     }
 
+    public ClassificationDialogFragment(Context context, String classificationResult) {
+        this.context = context;
+        this.classificationResult = classificationResult;
+    }
+
     public interface ClassificationDialogListener {
-        void onDialogPositiveClick(DialogFragment dialog, String addedLabel);
-        void onDialogNegativeClick(DialogFragment dialog);
-        void onDialogNeutralClick(DialogFragment dialog);
+        void onClassificationDialogPositiveClick(DialogFragment dialog, String addedLabel);
+        void onClassificationDialogNeutralClick(DialogFragment dialog);
+        void onClassificationDialogNegativeClick(DialogFragment dialog);
     }
 
     ClassificationDialogListener mListener;
@@ -37,23 +43,23 @@ public class ClassificationDialogFragment extends DialogFragment {
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.new_action, null);
         labelName = (EditText) dialogView.findViewById(R.id.action_label);
-
+        labelName.setText(classificationResult);
         builder.setView(dialogView)
                 .setMessage(R.string.dialog_save_name_of_action)
                 .setPositiveButton(R.string.save_action, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         String addedLabel = labelName.getText().toString();
-                        mListener.onDialogPositiveClick(ClassificationDialogFragment.this, addedLabel);
+                        mListener.onClassificationDialogPositiveClick(ClassificationDialogFragment.this, addedLabel);
+                    }
+                })
+                .setNeutralButton(R.string.classify_the_action, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        mListener.onClassificationDialogNeutralClick(ClassificationDialogFragment.this);
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        mListener.onDialogNegativeClick(ClassificationDialogFragment.this);
-                    }
-                })
-                .setNeutralButton(R.string.classify_the_action, new DialogInterface.OnClickListener(){
-                    public void onClick(DialogInterface dialog, int id){
-                        mListener.onDialogNeutralClick(ClassificationDialogFragment.this);
+                        mListener.onClassificationDialogNegativeClick(ClassificationDialogFragment.this);
                     }
                 });
         // Create the AlertDialog object and return it

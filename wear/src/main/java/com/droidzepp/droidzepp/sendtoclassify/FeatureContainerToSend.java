@@ -2,9 +2,6 @@ package com.droidzepp.droidzepp.sendtoclassify;
 
 import com.google.android.gms.wearable.DataMap;
 
-/**
- * Created by nijat on 28/10/15.
- */
 public class FeatureContainerToSend {
 
     float accWX;

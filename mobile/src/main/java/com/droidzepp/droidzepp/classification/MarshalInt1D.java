@@ -9,9 +9,6 @@ import org.xmlpull.v1.XmlSerializer;
 
 import java.io.IOException;
 
-/**
- * Created by nijat on 06/12/15.
- */
 public class MarshalInt1D implements Marshal{
     public Object readInstance(XmlPullParser parser, String namespace, String name, PropertyInfo expected)
             throws IOException, XmlPullParserException {

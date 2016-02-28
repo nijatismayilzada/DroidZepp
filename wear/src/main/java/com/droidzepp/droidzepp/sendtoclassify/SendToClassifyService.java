@@ -28,9 +28,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by nijat on 03/02/16.
- */
 public class SendToClassifyService extends Service implements DataApi.DataListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
@@ -42,13 +39,13 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
     private static final int CLIENT_CONNECTION_TIMEOUT = 10000;
     private static int RECHECKING_INTERVAL = 1000;
     private GoogleApiClient mGoogleApiClient;
+    private static final String LOGTAG = "SendToClassifyService";
 
 
     private final Runnable prcsCheckForStart = new Runnable() {
         @Override
         public void run() {
             if (SensorHandlerService.newDataRecorded){
-                Log.d("droidzepp.wear", "Data checking started");
                 hndlSendToClassify.post(prcsClassify);
                 SensorHandlerService.newDataRecorded = false;
             }
@@ -59,7 +56,7 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
     private final Runnable prcsClassify = new Runnable() {
         @Override
         public void run() {
-            extractfeaturesAndSend();
+            extractFeaturesAndSend();
         }
     };
 
@@ -97,12 +94,15 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
         super.onLowMemory();
     }
 
-    private void extractfeaturesAndSend(){
+    private void extractFeaturesAndSend(){
         AccelerometerNewDataHandler dbAccNewData = new AccelerometerNewDataHandler(getApplicationContext());
         GyroscopeNewDataHandler dbGyroNewData = new GyroscopeNewDataHandler(getApplicationContext());
-
+        dbAccNewData.openReadableDB();
+        dbGyroNewData.openReadableDB();
         List<XYZ> accDataList = dbAccNewData.getAllData();
         List<XYZ> gyroDataList = dbGyroNewData.getAllData();
+        dbAccNewData.closeDB();
+        dbGyroNewData.closeDB();
         FeatureContainerToSend newFeatures = new FeatureContainerToSend();
         final ArrayList<DataMap> dataMapList = new ArrayList<>();
 
@@ -115,37 +115,24 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
             newFeatures.setGyroWZ(gyroDataList.get(i).getZ());
             dataMapList.add(newFeatures.putToDataMap(new DataMap()));
         }
-        Log.d("droidzepp.wear.data", "Size of data: " + dataMapList.size());
+        Log.d(LOGTAG, "Size of data: " + dataMapList.size());
 
         executorService.submit(new Runnable() {
             @Override
             public void run() {
                 PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/wearData");
-//                putDataMapReq.getDataMap().putDataMapArrayList(DATA_KEY, new ArrayList<DataMap>());
-//                PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
-//                if (validateConnection()) {
-//                    Log.d("droidzepp.wear", "connection is okay");
-//                    Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
-//                        @Override
-//                        public void onResult(DataApi.DataItemResult dataItemResult) {
-//                            Log.d("droidzepp.wear.send", "Sending 0 recorded data: " + dataItemResult.getStatus().isSuccess());
-//                        }
-//                    });
-//                }
-
                 putDataMapReq.getDataMap().putDataMapArrayList(DATA_KEY, dataMapList);
                 PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
                 putDataReq.setUrgent();
                 if (validateConnection()) {
-                    Log.d("droidzepp.wear", "connection is okay");
+                    Log.d(LOGTAG, "Connection is okay");
                     Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
                         @Override
                         public void onResult(DataApi.DataItemResult dataItemResult) {
-                            Log.d("droidzepp.wear.send", "Sending recorded data: " + dataItemResult.getStatus().isSuccess());
+                            Log.d(LOGTAG, "Status of sending recorded data: " + dataItemResult.getStatus().isSuccess());
                         }
                     });
                 }
-
             }
         });
 
@@ -153,31 +140,25 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
 
     @Override
     public void onConnected(Bundle bundle) {
-
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-
     }
 
     @Override
     public void onDataChanged(DataEventBuffer dataEventBuffer) {
-
     }
 
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.d("droidzepp.wear", "Connection failed");
+        Log.d(LOGTAG, "Connection failed");
     }
 
     private boolean validateConnection() {
-        if (mGoogleApiClient.isConnected()) {
+        if (mGoogleApiClient.isConnected())
             return true;
-        }
-
         ConnectionResult result = mGoogleApiClient.blockingConnect(CLIENT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
-
         return result.isSuccess();
     }
 }
