@@ -17,11 +17,15 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
+import com.droidzepp.droidzepp.alarm.TimePickerFragment;
 import com.droidzepp.droidzepp.classification.ActionsDatabase;
 import com.droidzepp.droidzepp.classification.ClassifyService;
 import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
@@ -117,9 +121,43 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         actionsListAdapter = new ActionsListViewArrayAdapter(this, R.layout.actions_list_item, actionsDatabase.getRecordedActions());
         actionsDatabase.closeDB();
         actionsListView.setAdapter(actionsListAdapter);
+        registerForContextMenu(actionsListView);
         executorService = Executors.newCachedThreadPool();
     }
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        if (v.getId()==R.id.actions_listview) {
+            MenuInflater inflater = getMenuInflater();
+            inflater.inflate(R.menu.menu_list, menu);
+        }
+    }
 
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        String selectedAction = ((ActionsListViewArrayAdapter.ViewHolder) actionsListAdapter.getView(info.position, null, null).getTag()).getActionName();
+        switch(item.getItemId()) {
+            case R.id.add:
+                Log.d(LOGTAG, "Menu info: " + info.position);
+                DialogFragment newFragment = new TimePickerFragment();
+                newFragment.show(getFragmentManager(), "Time Picker");
+                return true;
+            case R.id.delete:
+                Log.d(LOGTAG, "Menu info: " + info.position);
+                Log.d(LOGTAG, "Menu info2: " + selectedAction);
+                actionsDatabase.openWritableDB();
+                actionsDatabase.deleteRecordedAction(selectedAction);
+                actionsListAdapter.updateContent(actionsDatabase.getRecordedActions());
+                actionsDatabase.closeDB();
+                actionsListView.invalidateViews();
+                actionsListView.setAdapter(actionsListAdapter);
+                registerForContextMenu(actionsListView);
+                return true;
+            default:
+                return super.onContextItemSelected(item);
+        }
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -186,6 +224,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         actionsDatabase.closeDB();
         actionsListView.invalidateViews();
         actionsListView.setAdapter(actionsListAdapter);
+        registerForContextMenu(actionsListView);
     }
 
     @Override

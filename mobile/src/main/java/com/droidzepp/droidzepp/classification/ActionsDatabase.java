@@ -257,6 +257,18 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         actionsDB.delete(TABLE_LABELS, KEY_ID + " = " + lId, null);
     }
 
+    public void deleteRecordedAction(String label) {
+        String selectQuery = "SELECT * FROM " + TABLE_LABELS + " WHERE " + KEY_NAME + " = '" + label + "'";
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
+        if(cursor.moveToFirst()){
+            do{
+                actionsDB.delete(TABLE_ACTIONS, KEY_LID + " = " + cursor.getString(0), null);
+            }while (cursor.moveToNext());
+        }
+
+        actionsDB.delete(TABLE_LABELS, KEY_NAME + " = '" + label + "'", null);
+    }
+
     public ArrayList<RecordedActionListElement> getRecordedActions() {
         String selectQuery = "SELECT * FROM " + TABLE_LABELS + " GROUP BY " + KEY_NAME;
         Cursor cursor = actionsDB.rawQuery(selectQuery, null);

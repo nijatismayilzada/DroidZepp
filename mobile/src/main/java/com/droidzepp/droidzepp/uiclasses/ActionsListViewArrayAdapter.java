@@ -28,9 +28,17 @@ public class ActionsListViewArrayAdapter extends ArrayAdapter<RecordedActionList
         this.notifyDataSetChanged();
     }
 
-    private class ViewHolder{
+    public class ViewHolder{
         TextView actionName;
         TextView lId;
+
+        public String getActionName() {
+            return actionName.getText().toString();
+        }
+
+        public TextView getlId() {
+            return lId;
+        }
     }
 
 
