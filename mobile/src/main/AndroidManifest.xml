@@ -20,6 +20,7 @@
         </activity>
         <service android:name=".datacollection.SensorHandlerService" ></service>
         <service android:name=".classification.ClassifyService" ></service>
+        <service android:name=".alarm.AlarmService" ></service>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
 

@@ -5,6 +5,7 @@ import android.app.DialogFragment;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
@@ -24,19 +25,26 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.TimePicker;
 
-import com.droidzepp.droidzepp.alarm.TimePickerFragment;
+import com.droidzepp.droidzepp.alarm.AlarmService;
+import com.droidzepp.droidzepp.alarm.AlarmObject;
 import com.droidzepp.droidzepp.classification.ActionsDatabase;
 import com.droidzepp.droidzepp.classification.ClassifyService;
 import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
 import com.droidzepp.droidzepp.uiclasses.ActionsListViewArrayAdapter;
+import com.droidzepp.droidzepp.uiclasses.AlarmFrequencyDialogFragment;
 import com.droidzepp.droidzepp.uiclasses.ClassificationDialogFragment;
 import com.droidzepp.droidzepp.uiclasses.ConfirmationDialogFragment;
+import com.droidzepp.droidzepp.uiclasses.TimePickerFragment;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements ConfirmationDialogFragment.ConfirmationDialogListener, ClassificationDialogFragment.ClassificationDialogListener {
+public class MainActivity extends AppCompatActivity implements ConfirmationDialogFragment.ConfirmationDialogListener,
+        ClassificationDialogFragment.ClassificationDialogListener,
+        TimePickerFragment.TimePickerListener,
+        AlarmFrequencyDialogFragment.AlarmFrequencyDialogListener{
 
     ActionsDatabase actionsDatabase;
 
@@ -47,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     ProgressDialog progress;
     DialogFragment confirmation;
     DialogFragment classification;
+    DialogFragment alarmTimePicker;
+    DialogFragment alarmFrequencyPicker;
     ActionsListViewArrayAdapter actionsListAdapter;
     ExecutorService executorService;
 
@@ -58,6 +68,9 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
 
     Messenger sensorHandlerServiceMessageSender;
     boolean mSensorHandlerBound;
+
+    Messenger alarmServiceMessageSender;
+    boolean mAlarmBound;
 
     private ServiceConnection classifyServiceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -98,6 +111,26 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         }
     };
 
+    private ServiceConnection alarmServiceConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            alarmServiceMessageSender = new Messenger(service);
+            mAlarmBound = true;
+            try {
+                Message msg = Message.obtain(null, HelperFunctions.MSG_REGISTER_CLIENT);
+                msg.replyTo = messageReceiver;
+                alarmServiceMessageSender.send(msg);
+            } catch (RemoteException e) {
+                // In this case the service has crashed before we could even do anything with it
+            }
+
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            alarmServiceMessageSender = null;
+            mAlarmBound = false;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -124,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         registerForContextMenu(actionsListView);
         executorService = Executors.newCachedThreadPool();
     }
+
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
@@ -140,8 +174,8 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         switch(item.getItemId()) {
             case R.id.add:
                 Log.d(LOGTAG, "Menu info: " + info.position);
-                DialogFragment newFragment = new TimePickerFragment();
-                newFragment.show(getFragmentManager(), "Time Picker");
+                alarmTimePicker = new TimePickerFragment(getApplicationContext(), selectedAction);
+                alarmTimePicker.show(getFragmentManager(), "Time Picker");
                 return true;
             case R.id.delete:
                 Log.d(LOGTAG, "Menu info: " + info.position);
@@ -170,10 +204,13 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         // Bind to the service
         Intent sensorHandlerService = new Intent(this, SensorHandlerService.class);
         Intent classifyService = new Intent(this, ClassifyService.class);
+        Intent alarmService = new Intent(this, AlarmService.class);
         startService(sensorHandlerService);
         startService(classifyService);
+        startService(alarmService);
         bindService(classifyService, classifyServiceConnection, Context.BIND_AUTO_CREATE);
         bindService(sensorHandlerService, sensorHandlerServiceConnection, Context.BIND_AUTO_CREATE);
+        bindService(alarmService, alarmServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
@@ -187,6 +224,10 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         if (mSensorHandlerBound) {
             unbindService(sensorHandlerServiceConnection);
             mSensorHandlerBound = false;
+        }
+        if (mAlarmBound) {
+            unbindService(alarmServiceConnection);
+            mAlarmBound = false;
         }
     }
 
@@ -249,6 +290,27 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         actionsDatabase.openWritableDB();
         actionsDatabase.deleteRecordedAction(recentRecordedActionID);
         actionsDatabase.closeDB();
+    }
+
+    @Override
+    public void onTimeSet(DialogFragment dialog, TimePicker view, int hourOfDay, int minute, String actionToAlarm) {
+        AlarmObject newAlarm = new AlarmObject(hourOfDay, minute, 0, actionToAlarm);
+        alarmFrequencyPicker = new AlarmFrequencyDialogFragment(getApplicationContext(), newAlarm);
+        alarmFrequencyPicker.show(getFragmentManager(), "AlarmFrequency");
+    }
+
+    @Override
+    public void onFrequencyItemClick(DialogInterface dialog, final AlarmObject newAlarm) {
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    alarmServiceMessageSender.send(Message.obtain(null, HelperFunctions.MSG_REGISTER_NEW_ALARM, newAlarm));
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @SuppressLint("HandlerLeak")

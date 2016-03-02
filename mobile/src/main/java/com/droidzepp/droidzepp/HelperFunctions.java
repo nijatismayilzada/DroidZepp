@@ -13,6 +13,8 @@ public class HelperFunctions {
     public static final int MSG_RECORDING_DONE = 4;
     public static final int MSG_COMBINING_DONE = 5;
     public static final int MSG_CLASSIFIER_RESULT = 6;
+    public static final int MSG_REGISTER_NEW_ALARM = 7;
+    public static final int MSG_START_CLASSIFICATION = 8;
 
     public static String getDateTime() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
