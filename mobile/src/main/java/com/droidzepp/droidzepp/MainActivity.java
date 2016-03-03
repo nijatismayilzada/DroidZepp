@@ -44,7 +44,7 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity implements ConfirmationDialogFragment.ConfirmationDialogListener,
         ClassificationDialogFragment.ClassificationDialogListener,
         TimePickerFragment.TimePickerListener,
-        AlarmFrequencyDialogFragment.AlarmFrequencyDialogListener{
+        AlarmFrequencyDialogFragment.AlarmFrequencyDialogListener {
 
     ActionsDatabase actionsDatabase;
 
@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
-        if (v.getId()==R.id.actions_listview) {
+        if (v.getId() == R.id.actions_listview) {
             MenuInflater inflater = getMenuInflater();
             inflater.inflate(R.menu.menu_list, menu);
         }
@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         String selectedAction = ((ActionsListViewArrayAdapter.ViewHolder) actionsListAdapter.getView(info.position, null, null).getTag()).getActionName();
-        switch(item.getItemId()) {
+        switch (item.getItemId()) {
             case R.id.add:
                 Log.d(LOGTAG, "Menu info: " + info.position);
                 alarmTimePicker = new TimePickerFragment(getApplicationContext(), selectedAction);
@@ -192,6 +192,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
                 return super.onContextItemSelected(item);
         }
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -244,11 +245,8 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     public void onConfirmationDialogPositiveClick(DialogFragment dialog) {
         Log.d(LOGTAG, "Start clicked");
         progress = ProgressDialog.show(this, "Please wait", "Recording the action...", true, false);
-        try {
-            sensorHandlerServiceMessageSender.send(Message.obtain(null, HelperFunctions.MSG_START_RECORDING));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        sendMessageToService(sensorHandlerServiceMessageSender, HelperFunctions.MSG_START_RECORDING);
+        sendMessageToService(classifyServiceMessageSender, HelperFunctions.MSG_START_RECORDING);
     }
 
     @Override
@@ -272,16 +270,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     public void onClassificationDialogNeutralClick(DialogFragment dialog) {
         Log.d(LOGTAG, "Neutral clicked");
         progress = ProgressDialog.show(this, "Please wait", "Classifying the action...", true, false);
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    classifyServiceMessageSender.send(Message.obtain(null, recentRecordedActionID + 11));
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        sendMessageToService(classifyServiceMessageSender, HelperFunctions.MSG_START_CLASSIFICATION, recentRecordedActionID);
     }
 
     @Override
@@ -301,11 +290,71 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
 
     @Override
     public void onFrequencyItemClick(DialogInterface dialog, final AlarmObject newAlarm) {
+        sendMessageToService(alarmServiceMessageSender, HelperFunctions.MSG_REGISTER_NEW_ALARM, newAlarm);
+    }
+
+    @SuppressLint("HandlerLeak")
+    class IncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case HelperFunctions.MSG_RECORDING_DONE:
+                    Log.d(LOGTAG, "Recording done");
+                    progress.dismiss();
+                    progress = ProgressDialog.show(MainActivity.this, "Please wait", "Receiving wearable device data...", true, false);
+                    break;
+                case HelperFunctions.MSG_RECORDING_DONE_HIDDEN:
+                    Log.d(LOGTAG, "Hidden recording done");
+                    break;
+                case HelperFunctions.MSG_COMBINING_DONE:
+                    Log.d(LOGTAG, "Receiving and combining of wearable data is done");
+                    recentRecordedActionID = (int) (long) msg.obj;
+                    progress.dismiss();
+                    classification = new ClassificationDialogFragment(getApplicationContext());
+                    classification.show(getFragmentManager(), "Classification");
+                    break;
+                case HelperFunctions.MSG_COMBINING_DONE_HIDDEN:
+                    recentRecordedActionID = (int) (long) msg.obj;
+                    Log.d(LOGTAG, "Hidden Receiving and combining of wearable data is done: " + recentRecordedActionID);
+                    sendMessageToService(classifyServiceMessageSender, HelperFunctions.MSG_START_CLASSIFICATION, recentRecordedActionID);
+                    break;
+                case HelperFunctions.MSG_CLASSIFIER_RESULT:
+                    String classificationResult = (String) msg.obj;
+                    Log.d(LOGTAG, "Classifier result: " + classificationResult);
+                    actionsDatabase.openReadableDB();
+                    String actionName = actionsDatabase.getLabel(Integer.parseInt(classificationResult) + 1);
+                    Log.d(LOGTAG, "Action name: " + actionName);
+                    actionsDatabase.closeDB();
+                    classification = new ClassificationDialogFragment(getApplicationContext(), actionName);
+                    progress.dismiss();
+                    classification.show(getFragmentManager(), "Classification");
+                    break;
+                case HelperFunctions.MSG_CLASSIFIER_RESULT_HIDDEN:
+                    String classificationResultHidden = (String) msg.obj;
+                    actionsDatabase.openWritableDB();
+                    String actionNameHidden = actionsDatabase.getLabel(Integer.parseInt(classificationResultHidden) + 1);
+                    Log.d(LOGTAG, "Hidden action name: " + actionNameHidden);
+                    sendMessageToService(alarmServiceMessageSender, HelperFunctions.MSG_CLASSIFIER_RESULT_HIDDEN, actionNameHidden);
+                    actionsDatabase.deleteRecordedAction(recentRecordedActionID);
+                    actionsDatabase.closeDB();
+                    break;
+                case HelperFunctions.MSG_START_RECORDING_HIDDEN:
+                    Log.d(LOGTAG, "Hidden recording start");
+                    sendMessageToService(sensorHandlerServiceMessageSender, HelperFunctions.MSG_START_RECORDING_HIDDEN);
+                    sendMessageToService(classifyServiceMessageSender, HelperFunctions.MSG_START_RECORDING_HIDDEN);
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
+
+    private void sendMessageToService(final Messenger toService, final int message) {
         executorService.submit(new Runnable() {
             @Override
             public void run() {
                 try {
-                    alarmServiceMessageSender.send(Message.obtain(null, HelperFunctions.MSG_REGISTER_NEW_ALARM, newAlarm));
+                    toService.send(Message.obtain(null, message));
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -313,41 +362,16 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
         });
     }
 
-    @SuppressLint("HandlerLeak")
-    class IncomingHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.what > 10) {
-                recentRecordedActionID = msg.what - 11;
-            } else {
-                switch (msg.what) {
-                    case HelperFunctions.MSG_RECORDING_DONE:
-                        Log.d(LOGTAG, "Recording done");
-                        progress.dismiss();
-                        progress = ProgressDialog.show(MainActivity.this, "Please wait", "Receiving wearable device data...", true, false);
-                        break;
-                    case HelperFunctions.MSG_COMBINING_DONE:
-                        Log.d(LOGTAG, "Receiving and combining of wearable data is done");
-                        progress.dismiss();
-                        classification = new ClassificationDialogFragment(getApplicationContext());
-                        classification.show(getFragmentManager(), "Classification");
-                        break;
-                    case HelperFunctions.MSG_CLASSIFIER_RESULT:
-                        Log.d(LOGTAG, "Classifier result received");
-                        String classificationResult = (String) msg.obj;
-                        Log.d(LOGTAG, "Classifier result: " + classificationResult);
-                        actionsDatabase.openReadableDB();
-                        String actionName = actionsDatabase.getLabel(Integer.parseInt(classificationResult)+1);
-                        Log.d(LOGTAG, "Action name: " + actionName);
-                        actionsDatabase.closeDB();
-                        classification = new ClassificationDialogFragment(getApplicationContext(), actionName);
-                        progress.dismiss();
-                        classification.show(getFragmentManager(), "Classification");
-                        break;
-                    default:
-                        super.handleMessage(msg);
+    private void sendMessageToService(final Messenger toService, final int message, final Object a) {
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    toService.send(Message.obtain(null, message, a));
+                } catch (RemoteException e) {
+                    e.printStackTrace();
                 }
             }
-        }
+        });
     }
 }

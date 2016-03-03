@@ -57,6 +57,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     public static boolean flagForAcc = false;
     public static boolean flagForGyro = false;
     public static boolean newDataRecorded = false;
+    public static boolean hiddenRecording = false;
 
 
     private final Runnable prcsStartRecording = new Runnable() {
@@ -124,7 +125,11 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
             mGyroEventListener.getDbNewData().closeDB();
             hndlEndRecording.removeCallbacks(prcsEndRecording);
             newDataRecorded = true;
-            sendMessageToMainActivity(HelperFunctions.MSG_RECORDING_DONE);
+            if(hiddenRecording) {
+                sendMessageToMainActivity(HelperFunctions.MSG_RECORDING_DONE_HIDDEN);
+            } else{
+                sendMessageToMainActivity(HelperFunctions.MSG_RECORDING_DONE);
+            }
             Log.d(LOGTAG, "End of recording");
         }
     };
@@ -208,6 +213,11 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
                     messageSender.remove(msg.replyTo);
                     break;
                 case HelperFunctions.MSG_START_RECORDING:
+                    hiddenRecording = false;
+                    hndlStartRecording.post(prcsStartRecording);
+                    break;
+                case HelperFunctions.MSG_START_RECORDING_HIDDEN:
+                    hiddenRecording = true;
                     hndlStartRecording.post(prcsStartRecording);
                     break;
                 default:
@@ -216,12 +226,29 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
         }
     }
 
-    private void sendMessageToMainActivity(int message) {
-        try {
-            messageSender.get(0).send(Message.obtain(null, message));
-        } catch (RemoteException e) {
-            messageSender.remove(0);
-        }
+    private void sendMessageToMainActivity(final int message) {
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    messageSender.get(0).send(Message.obtain(null, message));
+                } catch (RemoteException e) {
+                    messageSender.remove(0);
+                }
+            }
+        });
+    }
 
+    private void sendMessageToMainActivity(final int message, final Object a) {
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    messageSender.get(0).send(Message.obtain(null, message, a));
+                } catch (RemoteException e) {
+                    messageSender.remove(0);
+                }
+            }
+        });
     }
 }

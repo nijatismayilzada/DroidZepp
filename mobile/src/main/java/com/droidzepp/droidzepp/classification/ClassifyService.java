@@ -37,6 +37,8 @@ import org.ksoap2.transport.HttpTransportSE;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ClassifyService extends Service implements DataApi.DataListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -50,6 +52,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     ArrayList<Messenger> messageSender = new ArrayList<>();
 
     public static int recentRecordedActionID;
+    ExecutorService executorService;
 
     private static String URLS = "http://droidzepp.azurewebsites.net/Service.asmx";
     private static String NAMESPACE = "http://tempuri.org/";
@@ -57,6 +60,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     private static String METHOD_NAME = "Classify";
 
     private static String LOGTAG = "ClassifyService";
+    private static boolean hiddenClassify = false;
 
 
 //    int recheckingInterval = 1000;
@@ -95,6 +99,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
                 .addOnConnectionFailedListener(this)
                 .build();
         mGoogleApiClient.connect();
+        executorService = Executors.newCachedThreadPool();
 //        hndlCheckForStart = new Handler();
 //        hndlClassify = new Handler();
 //        hndlCheckForStart.post(prcsCheckForStart);
@@ -150,9 +155,11 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             actionsDB.addFeatures(extractedFeatures);
         }
         actionsDB.closeDB();
-        actionLabelID += 11;
-        sendMessageToMainActivity((int) actionLabelID);
-        sendMessageToMainActivity(HelperFunctions.MSG_COMBINING_DONE);
+        if (hiddenClassify) {
+            sendMessageToMainActivity(HelperFunctions.MSG_COMBINING_DONE_HIDDEN, actionLabelID);
+        } else {
+            sendMessageToMainActivity(HelperFunctions.MSG_COMBINING_DONE, actionLabelID);
+        }
         return actionLabelID;
     }
 
@@ -188,7 +195,7 @@ public class ClassifyService extends Service implements DataApi.DataListener,
         Log.d(LOGTAG, "Wearable connection failed");
     }
 
-    class DroidAsyncTask extends AsyncTask<Integer, Void, String>{
+    class DroidAsyncTask extends AsyncTask<Integer, Void, String> {
         @Override
         protected String doInBackground(Integer... params) {
             ActionsDatabase actionsDB = new ActionsDatabase(getApplicationContext());
@@ -262,7 +269,11 @@ public class ClassifyService extends Service implements DataApi.DataListener,
 
         @Override
         protected void onPostExecute(String resTxt) {
-            sendMessageToMainActivity(HelperFunctions.MSG_CLASSIFIER_RESULT, resTxt);
+            if (hiddenClassify){
+                sendMessageToMainActivity(HelperFunctions.MSG_CLASSIFIER_RESULT_HIDDEN, resTxt);
+            }else{
+                sendMessageToMainActivity(HelperFunctions.MSG_CLASSIFIER_RESULT, resTxt);
+            }
         }
     }
 
@@ -270,37 +281,52 @@ public class ClassifyService extends Service implements DataApi.DataListener,
     class IncomingHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
-            if (msg.what > 10) {
-                recentRecordedActionID = msg.what - 11;
-                classify(recentRecordedActionID);
-            } else {
-                switch (msg.what) {
-                    case HelperFunctions.MSG_REGISTER_CLIENT:
-                        messageSender.add(msg.replyTo);
-                        break;
-                    case HelperFunctions.MSG_UNREGISTER_CLIENT:
-                        messageSender.remove(msg.replyTo);
-                        break;
-                    default:
-                        super.handleMessage(msg);
-                }
+            switch (msg.what) {
+                case HelperFunctions.MSG_REGISTER_CLIENT:
+                    messageSender.add(msg.replyTo);
+                    break;
+                case HelperFunctions.MSG_UNREGISTER_CLIENT:
+                    messageSender.remove(msg.replyTo);
+                    break;
+                case HelperFunctions.MSG_START_RECORDING_HIDDEN:
+                    hiddenClassify = true;
+                    break;
+                case HelperFunctions.MSG_START_RECORDING:
+                    hiddenClassify = false;
+                    break;
+                case HelperFunctions.MSG_START_CLASSIFICATION:
+                    recentRecordedActionID = (int) msg.obj;
+                    classify(recentRecordedActionID);
+                    break;
+                default:
+                    super.handleMessage(msg);
             }
         }
     }
 
-    private void sendMessageToMainActivity(int message) {
-        try {
-            messageSender.get(0).send(Message.obtain(null, message));
-        } catch (RemoteException e) {
-            messageSender.remove(0);
-        }
+    private void sendMessageToMainActivity(final int message) {
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    messageSender.get(0).send(Message.obtain(null, message));
+                } catch (RemoteException e) {
+                    messageSender.remove(0);
+                }
+            }
+        });
     }
 
-    private void sendMessageToMainActivity(int message, Object a) {
-        try {
-            messageSender.get(0).send(Message.obtain(null, message, a));
-        } catch (RemoteException e) {
-            messageSender.remove(0);
-        }
+    private void sendMessageToMainActivity(final int message, final Object a) {
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    messageSender.get(0).send(Message.obtain(null, message, a));
+                } catch (RemoteException e) {
+                    messageSender.remove(0);
+                }
+            }
+        });
     }
 }
