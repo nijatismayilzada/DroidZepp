@@ -203,10 +203,43 @@ public class ClassifyService extends Service implements DataApi.DataListener,
             int lIdToTest = params[0];
             Log.d(LOGTAG, "lId to test: " + lIdToTest);
             double[][][] trainDataSet = actionsDB.getDataSet(lIdToTest);
+
+//            double[][] newtrain = new double[trainDataSet.length][trainDataSet[0].length * trainDataSet[0][0].length];
+//            int counter = 0;
+//            for (int a = 0; a<trainDataSet.length; a++)
+//            {
+//                for(int b = 0; b< trainDataSet[0].length; b++)
+//                {
+//                    for (int c = 0; c<trainDataSet[0][0].length; c++){
+//                        newtrain[a][counter]=trainDataSet[a][b][c];
+//                        counter++;
+//                    }
+//                }
+//                counter =0;
+//            }
+
             int[] trainLabels = actionsDB.getLabels(lIdToTest);
             double[][] testData = actionsDB.getTestData(lIdToTest);
+
+//            double[] newTest = new double[testData.length * testData[0].length];
+//
+//            counter = 0;
+//            for (int a = 0; a< testData.length; a++){
+//                for(int b=0; b<testData[0].length; b++){
+//                    newTest[counter] = testData[a][b];
+//                    counter++;
+//                }
+//            }
+
             String[] classes = actionsDB.getClasses(lIdToTest);
             actionsDB.closeDB();
+
+//            MulticlassSupportVectorMachine svm = new MulticlassSupportVectorMachine(new Gaussian(800), 1, classes.length);
+//            svm.Learn(newtrain, trainLabels);
+//
+//            String resTxt = String.valueOf(svm.Predict(newTest));
+//            Log.d(LOGTAG, resTxt);
+//            return resTxt;
 
             String resTxt = "";
             // Create request

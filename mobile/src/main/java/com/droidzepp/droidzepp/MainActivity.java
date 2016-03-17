@@ -236,7 +236,8 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
-            return true;
+            Intent setting = new Intent(this, SettingsActivity.class);
+            startActivity(setting);
         }
         return super.onOptionsItemSelected(item);
     }

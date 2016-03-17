@@ -43,7 +43,7 @@ public class SensorHandlerService extends Service implements DataApi.DataListene
     private Handler hndlEndRecording;
     private ExecutorService executorService;
     //private int recordingInterval = 60000;  // 1200000 = 20 minutes
-    private int recordingLength = 15000;  //60000 = 1 minute
+    private int recordingLength = 10000;  //60000 = 1 minute
     private int sensorDelay = 200;
 
     private static final String LOGTAG = "SensorHandlerService";

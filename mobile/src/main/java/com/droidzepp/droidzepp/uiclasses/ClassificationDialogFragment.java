@@ -48,7 +48,7 @@ public class ClassificationDialogFragment extends DialogFragment {
                 .setMessage(R.string.dialog_save_name_of_action)
                 .setPositiveButton(R.string.save_action, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        String addedLabel = labelName.getText().toString();
+                        String addedLabel = labelName.getText().toString().trim();
                         mListener.onClassificationDialogPositiveClick(ClassificationDialogFragment.this, addedLabel);
                     }
                 })
