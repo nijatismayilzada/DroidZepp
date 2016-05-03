@@ -23,7 +23,7 @@
 
         <receiver android:name=".alarm.AlarmService$AlarmReceiver" />
 
-        <service android:name=".datacollection.SensorHandlerService" />
+        <service android:name=".datacollection.DataCollectionService" />
         <service android:name=".classification.ClassifyService" />
         <service android:name=".alarm.AlarmService" />
 

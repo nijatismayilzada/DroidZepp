@@ -20,7 +20,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".datacollection.SensorHandlerService" ></service>
+        <service android:name=".datacollection.DataCollectionService" ></service>
         <service android:name=".sendtoclassify.SendToClassifyService" ></service>
     </application>
 

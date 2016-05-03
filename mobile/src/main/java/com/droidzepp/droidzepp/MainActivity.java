@@ -31,7 +31,7 @@ import com.droidzepp.droidzepp.alarm.AlarmService;
 import com.droidzepp.droidzepp.alarm.AlarmObject;
 import com.droidzepp.droidzepp.classification.ActionsDatabase;
 import com.droidzepp.droidzepp.classification.ClassifyService;
-import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
+import com.droidzepp.droidzepp.datacollection.DataCollectionService;
 import com.droidzepp.droidzepp.uiclasses.ActionsListViewArrayAdapter;
 import com.droidzepp.droidzepp.uiclasses.AlarmFrequencyDialogFragment;
 import com.droidzepp.droidzepp.uiclasses.ClassificationDialogFragment;
@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements ConfirmationDialo
     protected void onStart() {
         super.onStart();
         // Bind to the service
-        Intent sensorHandlerService = new Intent(this, SensorHandlerService.class);
+        Intent sensorHandlerService = new Intent(this, DataCollectionService.class);
         Intent classifyService = new Intent(this, ClassifyService.class);
         Intent alarmService = new Intent(this, AlarmService.class);
         startService(sensorHandlerService);

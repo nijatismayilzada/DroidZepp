@@ -28,7 +28,7 @@ public class GyroscopeListener implements SensorEventListener {
 
     @Override
     public final void onSensorChanged(SensorEvent event) {
-        if (SensorHandlerService.flagForGyro) {
+        if (DataCollectionService.flagForGyro) {
             // Many sensors return 3 values, one for each axis.
             data.setX(event.values[0]);
             data.setY(event.values[1]);
@@ -37,7 +37,7 @@ public class GyroscopeListener implements SensorEventListener {
                     String.valueOf(data.getY()) + "  " +
                     String.valueOf(data.getZ()));
             dbNewData.addXYZ(data);
-            SensorHandlerService.flagForGyro = false;
+            DataCollectionService.flagForGyro = false;
         }
     }
 }

@@ -230,6 +230,13 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         return cursor.getString(cursor.getColumnIndex(KEY_NAME));
     }
 
+    public long getlId(String actionName){
+        String selectQuery = "SELECT * FROM " + TABLE_LABELS + " WHERE " + KEY_NAME + " = '" + actionName + "'";
+        Cursor cursor = actionsDB.rawQuery(selectQuery, null);
+        cursor.moveToFirst();
+        return (long) cursor.getInt(cursor.getColumnIndex(KEY_LABEL));
+    }
+
     public String[] getClasses(int forThisTestData) {
         String selectQuery = "SELECT DISTINCT(" + KEY_LABEL + ") FROM " + TABLE_LABELS + " EXCEPT SELECT DISTINCT(" + KEY_LABEL + ") FROM " + TABLE_LABELS + " WHERE " + KEY_ID + " = " + forThisTestData;
         Cursor cursor = actionsDB.rawQuery(selectQuery, null);
@@ -276,7 +283,7 @@ public class ActionsDatabase extends SQLiteOpenHelper {
         ArrayList<RecordedActionListElement> recordedActions = new ArrayList<>();
         if (cursor.moveToFirst()) {
             do {
-                recordedActions.add(new RecordedActionListElement(cursor.getString(cursor.getColumnIndex(KEY_NAME)), cursor.getLong(cursor.getColumnIndex(KEY_ID))));
+                recordedActions.add(new RecordedActionListElement(cursor.getString(cursor.getColumnIndex(KEY_NAME)), this.getlId(cursor.getString(cursor.getColumnIndex(KEY_NAME)))));
             } while (cursor.moveToNext());
         }
         return recordedActions;

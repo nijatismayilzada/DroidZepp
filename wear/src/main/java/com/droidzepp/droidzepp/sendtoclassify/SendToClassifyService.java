@@ -10,7 +10,7 @@ import android.util.Log;
 
 import com.droidzepp.droidzepp.datacollection.AccelerometerNewDataHandler;
 import com.droidzepp.droidzepp.datacollection.GyroscopeNewDataHandler;
-import com.droidzepp.droidzepp.datacollection.SensorHandlerService;
+import com.droidzepp.droidzepp.datacollection.DataCollectionService;
 import com.droidzepp.droidzepp.datacollection.XYZ;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -45,9 +45,9 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
     private final Runnable prcsCheckForStart = new Runnable() {
         @Override
         public void run() {
-            if (SensorHandlerService.newDataRecorded){
+            if (DataCollectionService.newDataRecorded){
                 hndlSendToClassify.post(prcsClassify);
-                SensorHandlerService.newDataRecorded = false;
+                DataCollectionService.newDataRecorded = false;
             }
             hndlCheckForStart.postDelayed(prcsCheckForStart, RECHECKING_INTERVAL);
         }
@@ -130,7 +130,7 @@ public class SendToClassifyService extends Service implements DataApi.DataListen
                         @Override
                         public void onResult(DataApi.DataItemResult dataItemResult) {
                             Log.d(LOGTAG, "Status of sending recorded data: " + dataItemResult.getStatus().isSuccess());
-                        }
+                            }
                     });
                 }
             }
